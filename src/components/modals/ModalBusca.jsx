@@ -51,7 +51,7 @@ function ModalBusca({ onClose }) {
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
 
-        {/* CABEÇALHO (AMARELO PARA BUSCA) */}
+        {/* CABEÇALHO*/}
         <div className="bg-yellow-50 px-6 py-4 border-b border-yellow-100 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="bg-yellow-100 p-2 rounded-lg text-yellow-700">

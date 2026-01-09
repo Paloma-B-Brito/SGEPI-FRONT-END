@@ -48,7 +48,6 @@ function ModalBaixa({ onClose }) {
     };
 
     console.log("Baixa Registrada:", baixa);
-    // Aqui virá o fetch para o backend
     onClose();
   }
 

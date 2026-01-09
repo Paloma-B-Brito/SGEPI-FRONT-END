@@ -141,7 +141,7 @@ function Funcionarios() {
 
         <button
           onClick={abrirNovo}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
+          className="bg-blue-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 transition flex items-center gap-2 shadow-sm"
         >
           <span>➕</span> Cadastrar Funcionário
         </button>
@@ -306,7 +306,7 @@ function Funcionarios() {
               </button>
               <button
                 onClick={salvarFuncionario}
-                className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition"
+                className="px-4 py-2 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 shadow-md transition"
               >
                 Salvar Dados
               </button>

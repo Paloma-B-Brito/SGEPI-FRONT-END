@@ -1,202 +1,172 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+
+import ModalNovoEpi from "../components/modals/ModalNovoEpi";
 import ModalEntrada from "../components/modals/ModalEntrada";
 import ModalEntrega from "../components/modals/ModalEntrega";
 import ModalBaixa from "../components/modals/ModalBaixa";
 import ModalBusca from "../components/modals/ModalBusca";
-import ModalNovoEpi from "../components/modals/ModalNovoEpi";
-
-// 1. SIMULAÇÃO DO BANCO DE DADOS 
-const mockEstoqueInicial = [
-  { id: 1, item: "Capacete de Segurança", fabricante: "3M", quantidade: 45, validade: "2025-12-01" },
-  { id: 2, item: "Luvas de Raspa", fabricante: "Volk", quantidade: 15, validade: "2024-06-01" }, // Quantidade baixa
-  { id: 3, item: "Máscara PFF2", fabricante: "Delta", quantidade: 100, validade: "2024-02-10" }, // Vencimento próximo
-  { id: 4, item: "Cinto Paraquedista", fabricante: "Hercules", quantidade: 0, validade: "2026-01-01" }, // Zerado
-  { id: 5, item: "Protetor Auricular", fabricante: "3M", quantidade: 200, validade: "2025-11-20" },
-];
 
 function Dashboard() {
-  const [estoque, setEstoque] = useState(mockEstoqueInicial);
-  
-  // States dos Modais
-  const [modalEntrada, setModalEntrada] = useState(false);
-  const [modalEntrega, setModalEntrega] = useState(false);
-  const [modalBaixa, setModalBaixa] = useState(false);
-  const [modalBusca, setModalBusca] = useState(false);
-  const [modalNovoEpi, setModalNovoEpi] = useState(false);
+  const [modalAberto, setModalAberto] = useState(null);
 
-  // 2. FUNÇÕES AUXILIARES (A "Inteligência" visual)
-  // Formata a data para ficar bonitinha (dd/mm/aaaa)
-  const formatarData = (dataString) => {
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
-  };
-
-  // Define a cor do status baseado na quantidade
-  const getStatusColor = (qtd) => {
-    if (qtd === 0) return "text-red-600 font-bold";
-    if (qtd <= 20) return "text-yellow-600 font-bold";
-    return "text-green-600 font-bold";
-  };
-
-  // Define o texto do status
-  const getStatusTexto = (qtd) => {
-    if (qtd === 0) return "ESGOTADO";
-    if (qtd <= 20) return "BAIXO";
-    return "OK";
-  };
-
-  // 3. LOGICA PARA FILTRAR OS ALERTAS AUTOMATICAMENTE
-  // O useMemo serve para não recalcular isso toda hora, só quando o 'estoque' mudar
-  const alertasGerados = useMemo(() => {
-    const alertas = [];
-    const hoje = new Date();
-
-    estoque.forEach((produto) => {
-      const dataValidade = new Date(produto.validade);
-      const diferencaTempo = dataValidade - hoje;
-      const diasParaVencer = Math.ceil(diferencaTempo / (1000 * 60 * 60 * 24));
-
-      // Regra 1: Acabou o estoque
-      if (produto.quantidade === 0) {
-        alertas.push({
-          tipo: 'erro', // vermelho
-          mensagem: `❗ ${produto.item.toUpperCase()}: Não há mais no estoque`
-        });
-      } 
-      // Regra 2: Estoque Baixo (menos de 20)
-      else if (produto.quantidade <= 20) {
-        alertas.push({
-          tipo: 'atencao', // amarelo
-          mensagem: `⚠️ ${produto.item.toUpperCase()}: Quantidade Baixa (${produto.quantidade})`
-        });
-      }
-
-      // Regra 3: Vai vencer em menos de 30 dias
-      if (diasParaVencer > 0 && diasParaVencer <= 30) {
-        alertas.push({
-          tipo: 'erro',
-          mensagem: `📅 ${produto.item.toUpperCase()}: Vencimento Próximo (${formatarData(produto.validade)})`
-        });
-      }
-    });
-    return alertas;
-  }, [estoque]);
-
+  // Função para fechar qualquer modal
+  const fecharModal = () => setModalAberto(null);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      {/* TABELA DE ESTOQUE */}
-      <div className="bg-white rounded-xl shadow p-6 lg:col-span-2 overflow-x-auto">
-        <h2 className="text-xl font-bold text-gray-700 mb-4">
-          Estoque Atual de EPIs
-        </h2>
-
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-100 text-sm text-gray-600">
-            <tr>
-              <th className="p-3 rounded-tl-lg">Item</th>
-              <th className="p-3">Fabricante</th>
-              <th className="p-3">Qtd.</th>
-              <th className="p-3">Validade</th>
-              <th className="p-3 rounded-tr-lg">Status</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm text-gray-700">
-            {/* Aqui usa o .map para gerar as linhas baseado nos dados */}
-            {estoque.map((produto) => (
-              <tr key={produto.id} className="border-b hover:bg-gray-50 transition">
-                <td className="p-3 font-medium">{produto.item}</td>
-                <td className="p-3">{produto.fabricante}</td>
-                <td className="p-3">{produto.quantidade}</td>
-                <td className="p-3">{formatarData(produto.validade)}</td>
-                <td className={`p-3 ${getStatusColor(produto.quantidade)}`}>
-                  {getStatusTexto(produto.quantidade)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="animate-fade-in pb-20 md:pb-0"> {/* Padding bottom no mobile para não colar no fim */}
+      
+      {/* 1. ÁREA DE BOAS-VINDAS */}
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
+            Olá, <span className="text-blue-600">Gestor</span> 👋
+          </h2>
+          <p className="text-sm md:text-base text-gray-500 mt-1">
+            Aqui está o resumo do seu estoque hoje.
+          </p>
+        </div>
+        
+        {/* Status só aparece em telas médias pra cima (Tablet/PC) */}
+        <div className="hidden md:block text-right">
+            <p className="text-xs font-bold text-gray-400 uppercase">Status do Sistema</p>
+            <div className="flex items-center gap-2 justify-end">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-sm font-semibold text-gray-700">Operacional</span>
+            </div>
+        </div>
       </div>
 
-      {/* LADO DIREITO */}
-      <div className="space-y-6">
-
-        {/* ALERTAS DINÂMICOS */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="font-bold text-gray-800 mb-4 text-lg border-b pb-2">
-            🔔 ALERTAS IMPORTANTES
-          </h2>
-
-          <ul className="text-sm space-y-3 font-medium">
-            {alertasGerados.length === 0 ? (
-              <li className="text-green-600 text-center py-4">Tudo certo! Nenhum alerta.</li>
-            ) : (
-              alertasGerados.map((alerta, index) => (
-                <li 
-                  key={index} 
-                  className={`${alerta.tipo === 'erro' ? 'text-red-600 bg-red-50' : 'text-yellow-600 bg-yellow-50'} p-2 rounded border border-opacity-20 border-current`}
-                >
-                  {alerta.mensagem}
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-
-        {/* AÇÕES RÁPIDAS */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="font-bold text-gray-800 mb-4 text-lg">
-            ⚡ AÇÕES RÁPIDAS
-          </h2>
-
-          <div className="space-y-3">
-            <button
-              onClick={() => setModalNovoEpi(true)}
-              className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white p-3 rounded-lg font-bold hover:bg-purple-700 transition shadow-sm hover:shadow-md"
-            >
-              🆕 Cadastrar Novo EPI
-            </button>
-
-            <button
-              onClick={() => setModalEntrada(true)}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 transition shadow-sm hover:shadow-md"
-            >
-              ➕ Registrar Entrada
-            </button>
-
-            <button
-              onClick={() => setModalEntrega(true)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm hover:shadow-md"
-            >
-              👷 Realizar Entrega
-            </button>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setModalBaixa(true)}
-                className="w-full bg-red-600 text-white p-3 rounded-lg font-bold hover:bg-red-700 transition shadow-sm hover:shadow-md text-sm"
-              >
-                📉 Baixa/Perda
-              </button>
-
-              <button
-                onClick={() => setModalBusca(true)}
-                className="w-full bg-yellow-500 text-white p-3 rounded-lg font-bold hover:bg-yellow-600 transition shadow-sm hover:shadow-md text-sm"
-              >
-                🔍 Buscar
-              </button>
-            </div>
+      {/* 2. CARDS DE RESUMO (KPIs) */}
+      {/* Mobile: 2 colunas (grid-cols-2) | PC: 4 colunas (md:grid-cols-4) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-10">
+        
+        {/* Card 1 */}
+        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Total de Itens</h3>
+            <span className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-lg text-xs md:text-base">📦</span>
           </div>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800">1.240</p>
+          <p className="text-[10px] md:text-xs text-green-600 mt-1 md:mt-2 font-medium">⬆ +12% mês</p>
         </div>
+
+        {/* Card 2 */}
+        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Entregas Hoje</h3>
+            <span className="p-1.5 md:p-2 bg-purple-50 text-purple-600 rounded-lg text-xs md:text-base">🚀</span>
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800">18</p>
+          <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">Atendimentos</p>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Alertas</h3>
+            <span className="p-1.5 md:p-2 bg-orange-50 text-orange-600 rounded-lg text-xs md:text-base">⚠️</span>
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800">5</p>
+          <p className="text-[10px] md:text-xs text-orange-600 mt-1 md:mt-2 font-bold">Estoque baixo</p>
+        </div>
+
+         {/* Card 4 */}
+         <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Valor Total</h3>
+            <span className="p-1.5 md:p-2 bg-green-50 text-green-600 rounded-lg text-xs md:text-base">💲</span>
+          </div>
+          <p className="text-xl md:text-3xl font-bold text-gray-800">R$ 45k</p>
+          <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">Estimado</p>
+        </div>
+
+      </div>
+
+      {/* 3. AÇÕES RÁPIDAS */}
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        ⚡ Ações Rápidas
+      </h3>
+
+      {/* Grid responsivo: 1 coluna no mobile, 2 no tablet, 3 no PC */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        {/* Botão 1: Cadastrar */}
+        <button
+          onClick={() => setModalAberto("novo-epi")}
+          className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        >
+          <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-base md:text-lg">Cadastrar Novo EPI</span>
+            <span className="text-xs text-slate-300 group-hover:text-white transition">Adicionar item ao catálogo</span>
+          </div>
+          <div className="bg-white/10 p-2 md:p-3 rounded-lg group-hover:bg-white/20 transition">
+             <span className="text-xl md:text-2xl">📝</span>
+          </div>
+        </button>
+
+        {/* Botão 2: Entrada */}
+        <button
+          onClick={() => setModalAberto("entrada")}
+          className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        >
+           <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-base md:text-lg">Registrar Entrada</span>
+            <span className="text-xs text-emerald-100 group-hover:text-white transition">Repor estoque / Compras</span>
+          </div>
+          <div className="bg-white/10 p-2 md:p-3 rounded-lg group-hover:bg-white/20 transition">
+             <span className="text-xl md:text-2xl">➕</span>
+          </div>
+        </button>
+
+        {/* Botão 3: Entrega */}
+        <button
+          onClick={() => setModalAberto("entrega")}
+          className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        >
+           <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-base md:text-lg">Realizar Entrega</span>
+            <span className="text-xs text-blue-100 group-hover:text-white transition">Entregar para funcionário</span>
+          </div>
+          <div className="bg-white/10 p-2 md:p-3 rounded-lg group-hover:bg-white/20 transition">
+             <span className="text-xl md:text-2xl">👷</span>
+          </div>
+        </button>
+
+        {/* Botão 4: Baixa */}
+        <button
+          onClick={() => setModalAberto("baixa")}
+          className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        >
+           <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-base md:text-lg">Baixa / Perda</span>
+            <span className="text-xs text-rose-100 group-hover:text-white transition">Registrar dano ou descarte</span>
+          </div>
+          <div className="bg-white/10 p-2 md:p-3 rounded-lg group-hover:bg-white/20 transition">
+             <span className="text-xl md:text-2xl">📉</span>
+          </div>
+        </button>
+
+        {/* Botão 5: Buscar (Adapta-se para ocupar 2 colunas no tablet/PC, mas 1 no mobile) */}
+        <button
+          onClick={() => setModalAberto("busca")}
+          className="sm:col-span-2 lg:col-span-2 group flex items-center justify-center gap-3 p-4 md:p-5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300"
+        >
+          <span className="text-xl md:text-2xl">🔍</span>
+          <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-base md:text-lg">Consultar Estoque Rápido</span>
+            <span className="text-xs text-gray-400 group-hover:text-blue-400 transition">Pesquisar por CA, Nome ou Fabricante</span>
+          </div>
+        </button>
+
       </div>
 
       {/* MODAIS */}
-      {modalNovoEpi && <ModalNovoEpi onClose={() => setModalNovoEpi(false)} />}
-      {modalEntrada && <ModalEntrada onClose={() => setModalEntrada(false)} />}
-      {modalEntrega && <ModalEntrega onClose={() => setModalEntrega(false)} />}
-      {modalBaixa && <ModalBaixa onClose={() => setModalBaixa(false)} />}
-      {modalBusca && <ModalBusca onClose={() => setModalBusca(false)} />}
+      {modalAberto === "novo-epi" && <ModalNovoEpi onClose={fecharModal} />}
+      {modalAberto === "entrada" && <ModalEntrada onClose={fecharModal} />}
+      {modalAberto === "entrega" && <ModalEntrega onClose={fecharModal} />}
+      {modalAberto === "baixa" && <ModalBaixa onClose={fecharModal} />}
+      {modalAberto === "busca" && <ModalBusca onClose={fecharModal} />}
+
     </div>
   );
 }

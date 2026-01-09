@@ -117,7 +117,7 @@ function Entradas() {
 
         <button
           onClick={abrirModal}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition flex items-center gap-2 shadow-sm"
+          className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-sm"
         >
           <span>➕</span> Nova Entrada
         </button>
@@ -147,7 +147,6 @@ function Entradas() {
               </tr>
             ) : (
               entradas.map((e) => {
-                // Buscamos os nomes baseados nos IDs salvos
                 const nomeEpi = mockEpis.find(item => item.id === e.epi)?.nome || "Desconhecido";
                 const nomeUser = mockUsuarios.find(u => u.id === e.responsavel)?.nome.split(' ')[0] || "Sistema";
 
@@ -305,7 +304,7 @@ function Entradas() {
               </button>
               <button
                 onClick={salvarEntrada}
-                className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md transition"
+                className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition"
               >
                 Registrar Entrada
               </button>

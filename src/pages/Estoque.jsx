@@ -55,13 +55,11 @@ function Estoque() {
   const [busca, setBusca] = useState("");
   const [filtrar, setFiltrar] = useState(false);
 
-  // 2. FUNÇÕES AUXILIARES (Padronizadas com o Dashboard)
-  
-  // Formata data para MM/AAAA (mais comum para validade de EPI)
+  // 2. FUNÇÕES AUXILIARES 
+  // Formata data para MM/AAAA
   const formatarValidade = (dataString) => {
     if (!dataString) return "--";
     const data = new Date(dataString);
-    // O 'utc' evita problemas de fuso horário mudando o mês
     return data.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric', timeZone: 'UTC' });
   };
 
@@ -141,7 +139,7 @@ function Estoque() {
         </div>
         <button
           onClick={() => setFiltrar(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm"
+          className="bg-blue-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition shadow-sm"
         >
           Filtrar
         </button>

@@ -47,7 +47,6 @@ function ModalNovoEpi({ onClose }) {
     };
 
     console.log("Novo EPI Cadastrado:", epi);
-    // Fetch API aqui...
     onClose();
   }
 
@@ -55,19 +54,19 @@ function ModalNovoEpi({ onClose }) {
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
         
-        {/* CABEÇALHO (ROXO) */}
-        <div className="bg-purple-50 px-6 py-4 border-b border-purple-100 flex justify-between items-center">
+        {/* CABEÇALHO */}
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="bg-purple-100 p-2 rounded-lg text-purple-600">
+            <span className="bg-slate-200 p-2 rounded-lg text-slate-700">
                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </span>
-            <h2 className="text-xl font-bold text-purple-800">
+            <h2 className="text-xl font-bold text-slate-800">
               Cadastrar Novo Item
             </h2>
           </div>
-          <button onClick={onClose} className="text-purple-400 hover:text-purple-600 transition">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">✕</button>
         </div>
 
         {/* FORMULÁRIO */}
@@ -80,7 +79,7 @@ function ModalNovoEpi({ onClose }) {
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome do EPI <span className="text-red-500">*</span></label>
                         <input
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             placeholder="Ex: Luva de Vaqueta"
                             value={nome}
                             onChange={(e) => setNome(e.target.value)}
@@ -90,7 +89,7 @@ function ModalNovoEpi({ onClose }) {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fabricante <span className="text-red-500">*</span></label>
                         <input
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             placeholder="Ex: 3M"
                             value={fabricante}
                             onChange={(e) => setFabricante(e.target.value)}
@@ -100,7 +99,7 @@ function ModalNovoEpi({ onClose }) {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Proteção <span className="text-red-500">*</span></label>
                         <select
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             value={protecao}
                             onChange={(e) => setProtecao(e.target.value)}
                         >
@@ -120,7 +119,7 @@ function ModalNovoEpi({ onClose }) {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Número do CA <span className="text-red-500">*</span></label>
                         <input
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             placeholder="Ex: 12345"
                             value={ca}
                             onChange={(e) => setCa(e.target.value)}
@@ -131,7 +130,7 @@ function ModalNovoEpi({ onClose }) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Validade do CA</label>
                         <input
                             type="date"
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             value={dataValidadeCa}
                             onChange={(e) => setDataValidadeCa(e.target.value)}
                         />
@@ -140,7 +139,7 @@ function ModalNovoEpi({ onClose }) {
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada</label>
                         <textarea
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             rows="2"
                             placeholder="Detalhes técnicos, material, cor..."
                             value={descricao}
@@ -163,8 +162,8 @@ function ModalNovoEpi({ onClose }) {
                             onClick={() => setTamanhoSelecionado(t)}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-all ${
                                 tamanhoSelecionado === t
-                                    ? "bg-purple-600 text-white border-purple-600 shadow-md transform scale-105"
-                                    : "bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600"
+                                    ? "bg-slate-700 text-white border-slate-700 shadow-md transform scale-105"
+                                    : "bg-white text-gray-600 border-gray-200 hover:border-slate-400 hover:text-slate-800"
                             }`}
                         >
                             {t}
@@ -178,7 +177,7 @@ function ModalNovoEpi({ onClose }) {
                         <input
                             type="number"
                             min="1"
-                            className="w-24 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-24 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                             value={alertaMinimo}
                             onChange={(e) => setAlertaMinimo(Number(e.target.value))}
                         />
@@ -199,9 +198,9 @@ function ModalNovoEpi({ onClose }) {
           </button>
           <button
             onClick={salvarEpi}
-            className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-md transition"
+            className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 shadow-md transition flex items-center gap-2"
           >
-            Salvar Produto
+            <span>💾</span> Salvar Produto
           </button>
         </div>
 
