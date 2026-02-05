@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+// 1. MEUS DADOS MOCKADOS (Com o campo CA adicionado)
 const mockEstoqueCompleto = [
   {
     id: "CAP-001",
@@ -47,6 +48,15 @@ const mockEstoqueCompleto = [
       Único: { quantidade: 0, fabricante: "Rickman", validade: "2024-07-01", ca: "19.888" },
     },
   },
+  // Adicionei mais alguns itens para testar minha paginação
+  {
+    id: "CIN-006",
+    nome: "Cinto Paraquedista",
+    tamanhoAtual: "G",
+    variacoes: {
+      G: { quantidade: 3, fabricante: "Hercules", validade: "2027-01-01", ca: "10.101" },
+    },
+  },
 ];
 
 function Estoque() {
@@ -54,7 +64,11 @@ function Estoque() {
   const [busca, setBusca] = useState("");
   const [filtrar, setFiltrar] = useState(false);
 
-  // FUNÇÕES AUXILIARES
+  // Meus estados para controlar a paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 5; // Decidi mostrar 5 itens por página
+
+  // --- MINHAS FUNÇÕES AUXILIARES ---
   const formatarValidade = (dataString) => {
     if (!dataString) return "--";
     const data = new Date(dataString);
@@ -81,20 +95,30 @@ function Estoque() {
     );
   }
 
-  const listaExibida = epis.filter((epi) => {
+  // --- LÓGICA DE FILTRO E PAGINAÇÃO ---
+
+  // Primeiro eu filtro tudo com base na busca
+  const listaFiltrada = epis.filter((epi) => {
     if (!filtrar && busca === "") return true;
     
     const termo = busca.toLowerCase();
     const dadosAtuais = epi.variacoes[epi.tamanhoAtual];
     
-    // Adicionei busca pelo CA também
+    // Verifico se o termo bate com Nome, Tamanho, Fabricante ou CA
     const matchNome = epi.nome.toLowerCase().includes(termo);
     const matchTamanho = epi.tamanhoAtual.toLowerCase().includes(termo);
     const matchFabricante = dadosAtuais.fabricante.toLowerCase().includes(termo);
-    const matchCA = dadosAtuais.ca.includes(termo); // Busca pelo número do CA
+    const matchCA = dadosAtuais.ca.includes(termo); 
 
     return matchNome || matchTamanho || matchFabricante || matchCA;
   });
+
+  // Agora eu calculo quais itens vou exibir na página atual
+  const indexUltimoItem = paginaAtual * itensPorPagina;
+  const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
+  const itensVisiveis = listaFiltrada.slice(indexPrimeiroItem, indexUltimoItem);
+
+  const totalPaginas = Math.ceil(listaFiltrada.length / itensPorPagina);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
@@ -113,6 +137,7 @@ function Estoque() {
             onClick={() => {
               setBusca("");
               setFiltrar(false);
+              setPaginaAtual(1); // Resetar página ao limpar
             }}
             className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
           >
@@ -131,7 +156,10 @@ function Estoque() {
             type="text"
             placeholder="Buscar por nome, CA ou fabricante..."
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => {
+                setBusca(e.target.value);
+                setPaginaAtual(1); // Volto pra página 1 se eu digitar algo novo
+            }}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
           />
         </div>
@@ -149,7 +177,7 @@ function Estoque() {
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
             <tr>
               <th className="p-4 font-semibold">Item / EPI</th>
-              <th className="p-4 font-semibold">CA</th> {/* NOVA COLUNA */}
+              <th className="p-4 font-semibold">CA</th> {/* Coluna CA adicionada */}
               <th className="p-4 font-semibold text-center">Tamanho</th>
               <th className="p-4 font-semibold">Fabricante</th>
               <th className="p-4 font-semibold text-center">Qtd.</th>
@@ -159,18 +187,18 @@ function Estoque() {
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-            {listaExibida.length > 0 ? (
-              listaExibida.map((epi) => {
+            {itensVisiveis.length > 0 ? (
+              itensVisiveis.map((epi) => {
                 const dados = epi.variacoes[epi.tamanhoAtual];
                 
                 return (
                   <tr key={epi.id} className="hover:bg-gray-50 transition duration-150">
                     <td className="p-4 font-medium text-gray-800">{epi.nome}</td>
 
-                    {/* NOVA CÉLULA: CA */}
+                    {/* Exibindo o CA */}
                     <td className="p-4 text-gray-600 font-mono text-sm">
-                        <span className="bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                            {dados.ca}
+                        <span className="bg-gray-100 px-2 py-1 rounded border border-gray-200 text-xs font-bold text-gray-700">
+                            CA: {dados.ca}
                         </span>
                     </td>
 
@@ -220,6 +248,32 @@ function Estoque() {
           </tbody>
         </table>
       </div>
+
+      {/* MINHA BARRA DE PAGINAÇÃO */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-between items-center mt-4 px-2">
+            <button
+                onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                disabled={paginaAtual === 1}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                ← Anterior
+            </button>
+
+            <span className="text-sm text-gray-600">
+                Página <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
+            </span>
+
+            <button
+                onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaAtual === totalPaginas}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                Próxima →
+            </button>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,10 +1,13 @@
 import { useState } from "react";
 
-// 1. DADOS MOCKADOS
+// Meus dados de teste (simulando o banco de dados)
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", setor: "Produção", matricula: "483920", cargo: "Operador" },
   { id: 2, nome: "Maria Santos", setor: "Segurança", matricula: "739104", cargo: "Técnica" },
   { id: 3, nome: "Carlos Oliveira", setor: "Manutenção", matricula: "102938", cargo: "Eletricista" },
+  { id: 4, nome: "Ana Pereira", setor: "Logística", matricula: "998877", cargo: "Auxiliar" },
+  { id: 5, nome: "Roberto Costa", setor: "Produção", matricula: "112233", cargo: "Operador" },
+  { id: 6, nome: "Fernanda Lima", setor: "RH", matricula: "554433", cargo: "Analista" },
 ];
 
 const mockEpis = [
@@ -13,37 +16,30 @@ const mockEpis = [
   { id: 3, nome: "Sapato de Segurança", ca: "40.222", tamanhos: ["38", "40", "42", "44"] },
 ];
 
+// Criei mais dados aqui para testar se a paginação funciona mesmo
 const mockEntregasInicial = [
-  {
-    id: 101,
-    funcionario: 1, // João
-    dataEntrega: "2024-01-20",
-    itens: [{ id: "a1", epi: 1, tamanho: "M", quantidade: 1 }]
-  },
-  {
-    id: 102,
-    funcionario: 2, // Maria
-    dataEntrega: "2024-02-15", 
-    itens: [{ id: "a2", epi: 2, tamanho: "P", quantidade: 5 }]
-  },
-  {
-    id: 103,
-    funcionario: 3, // Carlos
-    dataEntrega: "2024-03-10",
-    itens: [{ id: "a3", epi: 3, tamanho: "42", quantidade: 1 }]
-  }
+  { id: 101, funcionario: 1, dataEntrega: "2024-01-20", itens: [{ id: "a1", epi: 1, tamanho: "M", quantidade: 1 }] },
+  { id: 102, funcionario: 2, dataEntrega: "2024-02-15", itens: [{ id: "a2", epi: 2, tamanho: "P", quantidade: 5 }] },
+  { id: 103, funcionario: 3, dataEntrega: "2024-03-10", itens: [{ id: "a3", epi: 3, tamanho: "42", quantidade: 1 }] },
+  { id: 104, funcionario: 4, dataEntrega: "2024-03-12", itens: [{ id: "a4", epi: 1, tamanho: "P", quantidade: 1 }] },
+  { id: 105, funcionario: 5, dataEntrega: "2024-03-15", itens: [{ id: "a5", epi: 3, tamanho: "40", quantidade: 1 }] },
+  { id: 106, funcionario: 1, dataEntrega: "2024-03-18", itens: [{ id: "a6", epi: 2, tamanho: "G", quantidade: 2 }] },
 ];
 
 function Entregas() {
   const [entregas, setEntregas] = useState(mockEntregasInicial);
   const [modalAberto, setModalAberto] = useState(false);
   
-  // ESTADOS DE FILTRO
+  // Meus estados para os filtros de busca
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
-  // States do Modal de Cadastro
+  // Configuração da minha paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 5; // Decidi mostrar 5 por vez
+
+  // Estados do formulário do modal
   const [funcionario, setFuncionario] = useState("");
   const [dataEntrega, setDataEntrega] = useState("");
   const [itens, setItens] = useState([]);
@@ -51,24 +47,23 @@ function Entregas() {
   const [tamanho, setTamanho] = useState("");
   const [quantidade, setQuantidade] = useState(1);
 
-  // Helpers
+  // Minha função pra formatar a data do jeito brasileiro
   const formatarData = (data) => {
     if (!data) return "--";
-    // Ajuste para fuso horário brasileiro na exibição
     const [ano, mes, dia] = data.split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // --- LÓGICA DE FILTRAGEM AVANÇADA ---
+  // Aqui eu filtro a lista completa antes de paginar
   const entregasFiltradas = entregas.filter((entrega) => {
     const func = mockFuncionarios.find(f => f.id === entrega.funcionario);
     if (!func) return false;
 
-    // 1. Filtro por Texto (Nome ou Matrícula)
+    // Filtro pelo nome ou matrícula
     const termo = busca.toLowerCase();
     const matchTexto = func.nome.toLowerCase().includes(termo) || func.matricula.includes(termo);
 
-    // 2. Filtro por Data (Se estiverem preenchidas)
+    // Filtro pelas datas (se eu tiver preenchido os campos)
     let matchData = true;
     if (dataInicio) {
         matchData = matchData && entrega.dataEntrega >= dataInicio;
@@ -80,7 +75,20 @@ function Entregas() {
     return matchTexto && matchData;
   });
 
-  // --- FUNÇÃO: GERAR RELATÓRIO GERAL (TABELA) ---
+  // Aqui eu calculo quais itens vão aparecer na página que estou vendo
+  const indexUltimoItem = paginaAtual * itensPorPagina;
+  const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
+  const entregasVisiveis = entregasFiltradas.slice(indexPrimeiroItem, indexUltimoItem);
+  
+  const totalPaginas = Math.ceil(entregasFiltradas.length / itensPorPagina);
+
+  // Minha função para resetar a paginação quando eu pesquiso algo novo
+  const aoMudarFiltro = (setter, valor) => {
+      setter(valor);
+      setPaginaAtual(1); // Volta pra página 1 senão buga a visualização
+  };
+
+  // Função que gera o PDF (imprime tudo que foi filtrado, não só a página atual)
   const imprimirRelatorioGeral = () => {
     const periodo = dataInicio && dataFim 
         ? `Período: ${formatarData(dataInicio)} até ${formatarData(dataFim)}`
@@ -133,7 +141,7 @@ function Entregas() {
               }).join('')}
             </tbody>
           </table>
-          <div class="total">Total de Registros: ${entregasFiltradas.length}</div>
+          <div class="total">Total de Registros Encontrados: ${entregasFiltradas.length}</div>
           <script>window.print();</script>
         </body>
       </html>
@@ -144,28 +152,33 @@ function Entregas() {
     win.document.close();
   };
 
-  // Funções do Modal
+  // Funções simples para controlar o modal
   function abrirModal() {
     setFuncionario(""); setDataEntrega(new Date().toISOString().split('T')[0]);
     setItens([]); setEpi(""); setTamanho(""); setQuantidade(1);
     setModalAberto(true);
   }
+  
   function adicionarItem() {
     if (!epi || !quantidade) return;
     setItens((prev) => [...prev, { id: Date.now(), epi: Number(epi), tamanho: tamanho || "Único", quantidade: Number(quantidade) }]);
     setEpi(""); setTamanho(""); setQuantidade(1);
   }
+  
   function removerItem(id) { setItens((prev) => prev.filter((i) => i.id !== id)); }
+  
   function salvarEntrega() {
     if (!funcionario || itens.length === 0) return;
     const nova = { id: Date.now(), funcionario: Number(funcionario), dataEntrega, itens };
-    setEntregas((prev) => [nova, ...prev]); setModalAberto(false);
+    setEntregas((prev) => [nova, ...prev]); 
+    setModalAberto(false);
+    setPaginaAtual(1); // Volto pra primeira página pra ver o que acabei de adicionar
   }
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in">
 
-      {/* CABEÇALHO */}
+      {/* Cabeçalho da página */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">📋 Histórico e Relatórios</h2>
@@ -176,13 +189,13 @@ function Entregas() {
         </button>
       </div>
 
-      {/* --- ÁREA DE FILTROS AVANÇADOS --- */}
+      {/* Meus filtros avançados */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
         <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">Filtros do Relatório</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             
-            {/* Filtro Nome */}
+            {/* Campo de busca por texto */}
             <div className="md:col-span-2">
                 <label className="text-xs text-gray-500 mb-1 block">Buscar Colaborador</label>
                 <div className="relative">
@@ -191,18 +204,19 @@ function Entregas() {
                         type="text"
                         placeholder="Nome ou Matrícula..."
                         value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
+                        onChange={(e) => aoMudarFiltro(setBusca, e.target.value)}
                         className="w-full pl-9 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     />
                 </div>
             </div>
 
+            {/* Campos de data */}
             <div>
                 <label className="text-xs text-gray-500 mb-1 block">De (Data Inicial)</label>
                 <input
                     type="date"
                     value={dataInicio}
-                    onChange={(e) => setDataInicio(e.target.value)}
+                    onChange={(e) => aoMudarFiltro(setDataInicio, e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                 />
             </div>
@@ -212,29 +226,28 @@ function Entregas() {
                 <input
                     type="date"
                     value={dataFim}
-                    onChange={(e) => setDataFim(e.target.value)}
+                    onChange={(e) => aoMudarFiltro(setDataFim, e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                 />
             </div>
         </div>
 
-        {/* Botões de Ação do Filtro */}
+        {/* Botões de ação dos filtros */}
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200">
             <span className="text-xs text-gray-500">
-                Mostrando <b>{entregasFiltradas.length}</b> registros
+                Encontrados: <b>{entregasFiltradas.length}</b> registros
             </span>
             
             <div className="flex gap-2">
                 {(busca || dataInicio || dataFim) && (
                     <button 
-                        onClick={() => { setBusca(""); setDataInicio(""); setDataFim(""); }}
+                        onClick={() => { setBusca(""); setDataInicio(""); setDataFim(""); setPaginaAtual(1); }}
                         className="text-xs text-red-500 font-bold hover:underline px-3"
                     >
                         Limpar Filtros
                     </button>
                 )}
                 
-                {/* BOTÃO MÁGICO DE RELATÓRIO */}
                 <button 
                     onClick={imprimirRelatorioGeral}
                     className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 transition shadow-sm text-sm flex items-center gap-2"
@@ -245,7 +258,7 @@ function Entregas() {
         </div>
       </div>
 
-      {/* TABELA DE DADOS */}
+      {/* Tabela de dados (Mostrando só a página atual) */}
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
@@ -256,14 +269,14 @@ function Entregas() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
-            {entregasFiltradas.length === 0 ? (
+            {entregasVisiveis.length === 0 ? (
               <tr>
                 <td colSpan="3" className="p-8 text-center text-gray-500 italic">
-                  Nenhum registro encontrado para os filtros selecionados.
+                  Nenhum registro encontrado nesta página.
                 </td>
               </tr>
             ) : (
-              entregasFiltradas.map((e) => {
+              entregasVisiveis.map((e) => {
                 const func = mockFuncionarios.find(f => f.id === e.funcionario);
                 return (
                   <tr key={e.id} className="hover:bg-gray-50 transition">
@@ -294,6 +307,32 @@ function Entregas() {
         </table>
       </div>
 
+      {/* Minha barra de paginação (Só aparece se tiver mais de uma página) */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-between items-center mt-4 px-2">
+            <button
+                onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                disabled={paginaAtual === 1}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                ← Anterior
+            </button>
+
+            <span className="text-sm text-gray-600">
+                Página <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
+            </span>
+
+            <button
+                onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaAtual === totalPaginas}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                Próxima →
+            </button>
+        </div>
+      )}
+
+      {/* Modal de cadastro (mantive simples pra não ocupar muito espaço) */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">

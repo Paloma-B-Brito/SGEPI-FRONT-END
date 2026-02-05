@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-// 1. MOCK DATA (Simulação do Banco de Dados)
+// 1. MEUS DADOS MOCKADOS (Simulação do Banco de Dados)
 const mockDepartamentos = [
   { id: 1, nome: "Produção", cor: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: 2, nome: "Segurança do Trabalho", cor: "bg-green-100 text-green-700 border-green-200" },
@@ -19,31 +19,17 @@ const mockFuncoes = [
   { id: 8, nome: "Conferente", idDepartamento: 4 },
 ];
 
+// Criei uma lista maior para testar minha paginação
 const mockFuncionariosInicial = [
-  {
-    id: 1,
-    nome: "João Silva",
-    matricula: "4839201",
-    departamento: mockDepartamentos[0], // Produção
-    funcao: mockFuncoes[0], // Operador
-  },
-  {
-    id: 2,
-    nome: "Maria Santos",
-    matricula: "7391046",
-    departamento: mockDepartamentos[1], // Segurança
-    funcao: mockFuncoes[3], // Téc. Segurança
-  },
-  {
-    id: 3,
-    nome: "Carlos Ferreira",
-    matricula: "1029384",
-    departamento: mockDepartamentos[2], // Adm
-    funcao: mockFuncoes[5], // Analista RH
-  },
+  { id: 1, nome: "João Silva", matricula: "4839201", departamento: mockDepartamentos[0], funcao: mockFuncoes[0] },
+  { id: 2, nome: "Maria Santos", matricula: "7391046", departamento: mockDepartamentos[1], funcao: mockFuncoes[3] },
+  { id: 3, nome: "Carlos Ferreira", matricula: "1029384", departamento: mockDepartamentos[2], funcao: mockFuncoes[5] },
+  { id: 4, nome: "Ana Paula", matricula: "5544332", departamento: mockDepartamentos[3], funcao: mockFuncoes[7] },
+  { id: 5, nome: "Roberto Costa", matricula: "9988776", departamento: mockDepartamentos[0], funcao: mockFuncoes[1] },
+  { id: 6, nome: "Fernanda Lima", matricula: "1122334", departamento: mockDepartamentos[2], funcao: mockFuncoes[6] },
 ];
 
-// Gera matrícula aleatória
+// Funçãozinha para gerar matrícula aleatória
 function gerarMatricula() {
   return Math.floor(1000000 + Math.random() * 9000000).toString();
 }
@@ -52,6 +38,10 @@ function Funcionarios() {
   const [funcionarios, setFuncionarios] = useState(mockFuncionariosInicial);
   const [busca, setBusca] = useState("");
   
+  // Meus estados para paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 5; // Vou mostrar 5 por vez
+
   // States do Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [funcSelecionado, setFuncSelecionado] = useState(null);
@@ -61,16 +51,65 @@ function Funcionarios() {
   const [formDepartamento, setFormDepartamento] = useState("");
   const [formFuncao, setFormFuncao] = useState("");
 
-  // Lógica de Filtro
-  const filtrados = funcionarios.filter((f) =>
+  // --- LÓGICA DE FILTRO E PAGINAÇÃO ---
+  
+  // Primeiro filtro a lista toda
+  const funcionariosFiltrados = funcionarios.filter((f) =>
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
     f.matricula.includes(busca)
   );
+
+  // Depois calculo quais itens aparecem na página atual
+  const indexUltimoItem = paginaAtual * itensPorPagina;
+  const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
+  const funcionariosVisiveis = funcionariosFiltrados.slice(indexPrimeiroItem, indexUltimoItem);
+
+  const totalPaginas = Math.ceil(funcionariosFiltrados.length / itensPorPagina);
 
   // Filtra as funções baseado no departamento selecionado no Select
   const funcoesDisponiveis = mockFuncoes.filter(
     (f) => f.idDepartamento === Number(formDepartamento)
   );
+
+  // --- FUNÇÕES DO SISTEMA ---
+
+  // Função útil para imprimir a lista de funcionários (para auditoria)
+  const imprimirListaColaboradores = () => {
+    const conteudoHTML = `
+      <html>
+        <head>
+          <title>Lista de Colaboradores</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; font-size: 12px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #eee; }
+          </style>
+        </head>
+        <body>
+          <h1>Quadro de Funcionários Ativos</h1>
+          <table>
+            <thead><tr><th>Matrícula</th><th>Nome</th><th>Departamento</th><th>Cargo</th></tr></thead>
+            <tbody>
+              ${funcionariosFiltrados.map(f => `
+                <tr>
+                  <td>${f.matricula}</td>
+                  <td>${f.nome}</td>
+                  <td>${f.departamento.nome}</td>
+                  <td>${f.funcao.nome}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+    const win = window.open('', '', 'width=800,height=600');
+    win.document.write(conteudoHTML);
+    win.document.close();
+  };
 
   function abrirNovo() {
     setFuncSelecionado(null);
@@ -89,7 +128,6 @@ function Funcionarios() {
   }
 
   function salvarFuncionario() {
-    // Validação simples
     if (!formNome || !formDepartamento || !formFuncao) {
       alert("Por favor, preencha todos os campos.");
       return;
@@ -99,7 +137,7 @@ function Funcionarios() {
     const funcObj = mockFuncoes.find((f) => f.id === Number(formFuncao));
 
     if (funcSelecionado) {
-      // EDICAO
+      // EDITAR
       setFuncionarios((prev) =>
         prev.map((f) =>
           f.id === funcSelecionado.id
@@ -108,15 +146,16 @@ function Funcionarios() {
         )
       );
     } else {
-      // NOVO CADASTRO
+      // NOVO
       const novoFunc = {
-        id: Date.now(), // ID único simples
+        id: Date.now(),
         nome: formNome,
         matricula: gerarMatricula(),
         departamento: depObj,
         funcao: funcObj,
       };
       setFuncionarios((prev) => [...prev, novoFunc]);
+      setPaginaAtual(Math.ceil((funcionarios.length + 1) / itensPorPagina)); // Vai pra última página ver o novo
     }
     setModalAberto(false);
   }
@@ -128,7 +167,7 @@ function Funcionarios() {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in">
       
       {/* CABEÇALHO */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -139,24 +178,33 @@ function Funcionarios() {
           <p className="text-sm text-gray-500">Gerencie a equipe e suas atribuições.</p>
         </div>
 
-        <button
-          onClick={abrirNovo}
-          className="bg-blue-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 transition flex items-center gap-2 shadow-sm"
-        >
-          <span>➕</span> Cadastrar Funcionário
-        </button>
+        <div className="flex gap-2">
+            <button
+                onClick={imprimirListaColaboradores}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 transition shadow-sm border border-gray-300 flex items-center gap-2"
+            >
+                <span>🖨️</span> Imprimir Lista
+            </button>
+            <button
+                onClick={abrirNovo}
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 transition flex items-center gap-2 shadow-sm"
+            >
+                <span>➕</span> Cadastrar
+            </button>
+        </div>
       </div>
 
       {/* BARRA DE BUSCA */}
       <div className="relative mb-6">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-          🔍
-        </span>
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
         <input
           type="text"
           placeholder="Buscar por nome ou matrícula..."
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+          onChange={(e) => {
+              setBusca(e.target.value);
+              setPaginaAtual(1); // Se buscar, volta pra página 1
+          }}
           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
         />
       </div>
@@ -174,8 +222,8 @@ function Funcionarios() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filtrados.length > 0 ? (
-              filtrados.map((func) => (
+            {funcionariosVisiveis.length > 0 ? (
+              funcionariosVisiveis.map((func) => (
                 <tr key={func.id} className="hover:bg-gray-50 transition">
                   <td className="p-4 font-mono text-gray-600">{func.matricula}</td>
                   <td className="p-4 font-medium text-gray-800">{func.nome}</td>
@@ -216,6 +264,31 @@ function Funcionarios() {
           </tbody>
         </table>
       </div>
+
+      {/* PAGINAÇÃO (Só aparece se tiver mais de uma página) */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-between items-center mt-4 px-2">
+            <button
+                onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                disabled={paginaAtual === 1}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                ← Anterior
+            </button>
+
+            <span className="text-sm text-gray-600">
+                Página <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
+            </span>
+
+            <button
+                onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaAtual === totalPaginas}
+                className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-700 hover:bg-blue-50 border-blue-200'}`}
+            >
+                Próxima →
+            </button>
+        </div>
+      )}
 
       {/* MODAL */}
       {modalAberto && (
