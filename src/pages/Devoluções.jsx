@@ -1,7 +1,6 @@
 import { useState } from "react";
 import ModalBaixa from "../components/modals/ModalBaixa";
 
-// 1. DADOS MOCKADOS
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", setor: "Produção", matricula: "483920" },
   { id: 2, nome: "Maria Santos", setor: "Segurança", matricula: "739104" },
@@ -28,8 +27,6 @@ function Devolucoes() {
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
-
-  // Helpers
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.split("-");
@@ -51,8 +48,97 @@ function Devolucoes() {
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const devolucoesVisiveis = devolucoesFiltradas.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(devolucoesFiltradas.length / itensPorPagina);
+
   const imprimirRelatorioDevolucoes = () => {
-    window.print();
+    const conteudo = `
+      <html>
+        <head>
+          <title>Relatório de Devoluções de EPI</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #b91c1c; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { margin: 0; color: #b91c1c; font-size: 24px; text-transform: uppercase; }
+            .header .meta { text-align: right; font-size: 12px; color: #666; }
+            
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th { background-color: #f3f4f6; color: #1f2937; text-align: left; padding: 12px; border-bottom: 2px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+            td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; vertical-align: middle; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            
+            .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+            .badge-sim { background-color: #dcfce7; color: #166534; }
+            .badge-nao { background-color: #f3f4f6; color: #4b5563; }
+            
+            .footer { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
+            .assinatura-box { width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 10px; font-size: 12px; margin-top: 40px; }
+            
+            @media print {
+              .no-print { display: none; }
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>Relatório de Devoluções</h1>
+              <p style="margin: 5px 0 0; font-size: 14px;">Controle de Estoque e Segurança do Trabalho</p>
+            </div>
+            <div class="meta">
+              <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
+              <p>Total de Registros: ${devolucoesFiltradas.length}</p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Colaborador</th>
+                <th>Item Devolvido</th>
+                <th>Motivo</th>
+                <th>Houve Troca?</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${devolucoesFiltradas.map(d => {
+                const func = mockFuncionarios.find(f => f.id === d.funcionario);
+                const epi = mockEpis.find(e => e.id === d.epi);
+                const trocaClass = d.troca ? 'badge-sim' : 'badge-nao';
+                const trocaTexto = d.troca ? 'SIM' : 'NÃO';
+                
+                return `
+                  <tr>
+                    <td>${formatarData(d.data)}</td>
+                    <td><b>${func?.nome}</b><br/><span style="color:#666; font-size:11px;">Mat: ${func?.matricula}</span></td>
+                    <td>${epi?.nome} (${d.tamanho}) - <b>${d.quantidade} un</b></td>
+                    <td>${d.motivo}</td>
+                    <td><span class="badge ${trocaClass}">${trocaTexto}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="assinatura-box">
+              Responsável pelo Almoxarifado
+            </div>
+            <div class="assinatura-box">
+              Técnico de Segurança do Trabalho
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    const win = window.open('', '', 'width=900,height=600');
+    win.document.write(conteudo);
+    win.document.close();
   };
 
   return (
@@ -75,7 +161,7 @@ function Devolucoes() {
                 <span>🖨️</span> Relatório
             </button>
             <button
-                onClick={() => setModalAberto(true)} // <--- AQUI ABRE O SEU MODAL BAIXA
+                onClick={() => setModalAberto(true)}
                 className="bg-red-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-800 transition flex items-center gap-2 shadow-sm"
             >
                 <span>➕</span> Registrar Devolução
@@ -191,6 +277,7 @@ function Devolucoes() {
             </button>
         </div>
       )}
+
       {modalAberto && (
         <ModalBaixa 
             onClose={() => setModalAberto(false)} 

@@ -39,8 +39,6 @@ function Entregas() {
   // Configuração da minha paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
-
-  // Minha função pra formatar a data do jeito brasileiro
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.split("-");
@@ -50,7 +48,6 @@ function Entregas() {
   // --- LÓGICA DE FILTRO E PAGINAÇÃO ---
   const entregasFiltradas = entregas.filter((entrega) => {
     const func = mockFuncionarios.find(f => f.id === entrega.funcionario);
-    // Se o funcionário não existir no mock (ex: foi deletado), ignoro o registro
     if (!func) return false; 
 
     // 1. Filtro por Texto
@@ -82,79 +79,214 @@ function Entregas() {
       setPaginaAtual(1);
   };
 
-  // --- FUNÇÃO QUE RECEBE OS DADOS DO MODAL (INTEGRAÇÃO) ---
   const receberNovaEntrega = (novaEntrega) => {
-      // O 'novaEntrega' já vem pronto do Modal com itens e assinatura
       setEntregas((prev) => [novaEntrega, ...prev]);
-      setPaginaAtual(1); // Volto pro inicio pra ver o que acabei de criar
-      // Aqui eu poderia mandar salvar no Backend também
+      setPaginaAtual(1);
   };
 
   // --- GERADOR DE RELATÓRIO PDF ---
-  const imprimirRelatorioGeral = () => {
-    const periodo = dataInicio && dataFim 
-        ? `Período: ${formatarData(dataInicio)} até ${formatarData(dataFim)}`
-        : "Relatório Geral (Todo o Período)";
+ const imprimirRelatorioGeral = () => {
+    const periodoTexto = dataInicio && dataFim 
+        ? `${formatarData(dataInicio)} até ${formatarData(dataFim)}`
+        : "Período Completo (Todos os registros)";
+    
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
 
     const conteudoHTML = `
       <html>
         <head>
-          <title>Relatório de Entregas</title>
+          <title>Relatório de Entrega de EPIs</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; font-size: 12px; }
-            h1 { text-align: center; margin-bottom: 5px; }
-            p { text-align: center; color: #666; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th { background-color: #eee; text-align: left; padding: 8px; border: 1px solid #999; font-size: 11px; text-transform: uppercase;}
-            td { padding: 8px; border: 1px solid #ccc; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .img-assinatura { max-height: 30px; display: block; }
-            .total { font-weight: bold; text-align: right; padding-top: 10px; font-size: 14px; }
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+            body { 
+              font-family: 'Roboto', sans-serif; 
+              padding: 40px; 
+              font-size: 12px; 
+              color: #374151; 
+              -webkit-print-color-adjust: exact; 
+            }
+
+            /* CABEÇALHO */
+            .header { 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center; 
+              border-bottom: 3px solid #2563eb; 
+              padding-bottom: 15px; 
+              margin-bottom: 25px; 
+            }
+            .header-title h1 { margin: 0; color: #1e3a8a; font-size: 22px; text-transform: uppercase; }
+            .header-title p { margin: 4px 0 0; color: #6b7280; font-size: 12px; }
+            .header-meta { text-align: right; font-size: 12px; color: #4b5563; line-height: 1.5; }
+            
+            /* TABELA */
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th { 
+              background-color: #f3f4f6; 
+              color: #111827; 
+              text-align: left; 
+              padding: 10px; 
+              border-bottom: 2px solid #d1d5db; 
+              font-size: 11px; 
+              text-transform: uppercase; 
+              font-weight: 700;
+            }
+            td { 
+              padding: 10px; 
+              border-bottom: 1px solid #e5e7eb; 
+              vertical-align: middle; 
+            }
+            tr:nth-child(even) { background-color: #f9fafb; }
+
+            /* ESTILOS ESPECÍFICOS DAS CÉLULAS */
+            .col-data { white-space: nowrap; width: 10%; font-weight: 500; }
+            .col-func { width: 30%; }
+            .col-itens { width: 40%; }
+            .col-assinatura { width: 20%; text-align: center; }
+
+            .func-nome { font-weight: 700; color: #1f2937; font-size: 13px; display: block; }
+            .func-meta { font-size: 11px; color: #6b7280; }
+
+            .item-tag { 
+              display: inline-block; 
+              background: #eff6ff; 
+              color: #1e40af; 
+              border: 1px solid #dbeafe; 
+              padding: 2px 6px; 
+              border-radius: 4px; 
+              font-size: 11px; 
+              margin: 1px;
+            }
+
+            .img-assinatura { 
+              max-height: 40px; 
+              max-width: 120px; 
+              display: inline-block;
+            }
+            .assinatura-manual {
+              border-bottom: 1px solid #9ca3af;
+              width: 80%;
+              margin: 15px auto 5px;
+              display: block;
+            }
+            .assinatura-label { font-size: 9px; color: #9ca3af; font-style: italic; }
+
+            /* RODAPÉ E TOTALIZADORES */
+            .summary { 
+              text-align: right; 
+              margin-top: 10px; 
+              font-size: 13px; 
+              font-weight: bold; 
+              background: #f3f4f6; 
+              padding: 10px; 
+              border-radius: 6px;
+            }
+
+            .footer { 
+              margin-top: 50px; 
+              display: flex; 
+              justify-content: space-between; 
+              page-break-inside: avoid; 
+            }
+            .footer-line { 
+              width: 40%; 
+              border-top: 1px solid #374151; 
+              padding-top: 8px; 
+              text-align: center; 
+              font-size: 11px; 
+            }
+            .disclaimer {
+                margin-top: 30px;
+                font-size: 9px;
+                color: #9ca3af;
+                text-align: justify;
+                border-top: 1px solid #e5e7eb;
+                padding-top: 5px;
+            }
+
+            @media print {
+              .no-print { display: none; }
+            }
           </style>
         </head>
         <body>
-          <h1>RELATÓRIO DE SAÍDA DE EPIs</h1>
-          <p>${periodo}</p>
           
+          <div class="header">
+            <div class="header-title">
+              <h1>Relatório de Saída de EPIs</h1>
+              <p>Controle de Fornecimento Individual</p>
+            </div>
+            <div class="header-meta">
+              <strong>Filtro:</strong> ${periodoTexto}<br/>
+              <strong>Emissão:</strong> ${dataEmissao}<br/>
+              <strong>Status:</strong> Documento Conferido
+            </div>
+          </div>
+
           <table>
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Colaborador</th>
-                <th>Itens Entregues</th>
-                <th>Assinatura</th>
+                <th class="col-data">Data</th>
+                <th class="col-func">Colaborador / Matrícula</th>
+                <th class="col-itens">Itens Entregues (EPI - Tam - Qtd)</th>
+                <th class="col-assinatura">Assinatura do Recebedor</th>
               </tr>
             </thead>
             <tbody>
               ${entregasFiltradas.map(ent => {
                 const func = mockFuncionarios.find(f => f.id === ent.funcionario);
                 const listaItens = ent.itens.map(i => {
-                    return `${i.epiNome} (${i.tamanho}) - <b>${i.quantidade}un</b>`;
-                }).join('<br/>');
-                
-                // Se tiver imagem de assinatura, eu mostro, senão mostro "Manual"
-                const assinaturaHTML = ent.assinatura 
-                    ? `<img src="${ent.assinatura}" class="img-assinatura" />` 
-                    : "<span style='color:gray; font-style:italic'>Arquivo Manual</span>";
+                    return `<span class="item-tag">${i.epiNome} (${i.tamanho}) <b>x${i.quantidade}</b></span>`;
+                }).join(' ');
+
+                // Lógica de Assinatura
+                const assinaturaCell = ent.assinatura 
+                    ? `<img src="${ent.assinatura}" class="img-assinatura" /><br/><span class="assinatura-label">Assinado Digitalmente</span>` 
+                    : `<div class="assinatura-manual"></div><span class="assinatura-label">Assinatura Física</span>`;
 
                 return `
                   <tr>
-                    <td style="white-space:nowrap">${formatarData(ent.dataEntrega)}</td>
-                    <td>${func?.nome}<br/><small style="color:#666">${func?.matricula}</small></td>
-                    <td>${listaItens}</td>
-                    <td>${assinaturaHTML}</td>
+                    <td class="col-data">${formatarData(ent.dataEntrega)}</td>
+                    <td class="col-func">
+                        <span class="func-nome">${func?.nome || 'Não identificado'}</span>
+                        <span class="func-meta">Mat: ${func?.matricula || '--'} | Setor: ${func?.setor || '--'}</span>
+                    </td>
+                    <td class="col-itens">${listaItens}</td>
+                    <td class="col-assinatura">${assinaturaCell}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
-          <div class="total">Total de Registros: ${entregasFiltradas.length}</div>
-          <script>window.print();</script>
+
+          <div class="summary">
+            Total de Entregas Registradas: ${entregasFiltradas.length}
+          </div>
+
+          <div class="footer">
+            <div class="footer-line">
+              <b>Responsável pela Entrega / Almoxarifado</b><br/>
+              Assinatura
+            </div>
+            <div class="footer-line">
+              <b>Técnico de Segurança do Trabalho</b><br/>
+              Visto / Aprovação
+            </div>
+          </div>
+
+          <div class="disclaimer">
+            Declaro para os devidos fins que recebi os Equipamentos de Proteção Individual (EPIs) constantes nesta ficha, em perfeito estado de conservação e funcionamento, assumindo a responsabilidade pelo seu uso correto, guarda e conservação, comprometendo-me a comunicar qualquer alteração que os torne impróprios para uso, bem como a devolvê-los quando solicitado ou no desligamento da empresa, conforme NR-06.
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
         </body>
       </html>
     `;
 
-    const win = window.open('', '', 'width=900,height=600');
+    const win = window.open('', '', 'width=950,height=650');
     win.document.write(conteudoHTML);
     win.document.close();
   };

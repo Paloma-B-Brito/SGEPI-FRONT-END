@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-// 1. MEUS DADOS MOCKADOS (Simulação do Banco de Dados)
 const mockDepartamentos = [
   { id: 1, nome: "Produção", cor: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: 2, nome: "Segurança do Trabalho", cor: "bg-green-100 text-green-700 border-green-200" },
@@ -19,7 +18,6 @@ const mockFuncoes = [
   { id: 8, nome: "Conferente", idDepartamento: 4 },
 ];
 
-// Criei uma lista maior para testar minha paginação
 const mockFuncionariosInicial = [
   { id: 1, nome: "João Silva", matricula: "4839201", departamento: mockDepartamentos[0], funcao: mockFuncoes[0] },
   { id: 2, nome: "Maria Santos", matricula: "7391046", departamento: mockDepartamentos[1], funcao: mockFuncoes[3] },
@@ -73,40 +71,103 @@ function Funcionarios() {
 
   // --- FUNÇÕES DO SISTEMA ---
 
-  // Função útil para imprimir a lista de funcionários (para auditoria)
   const imprimirListaColaboradores = () => {
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
+    const totalColaboradores = funcionariosFiltrados.length;
+
     const conteudoHTML = `
       <html>
         <head>
-          <title>Lista de Colaboradores</title>
+          <title>Relatório de Colaboradores</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; font-size: 12px; }
-            h1 { text-align: center; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background-color: #eee; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+            
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #333; -webkit-print-color-adjust: exact; }
+            
+            /* Cabeçalho */
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1e40af; padding-bottom: 20px; margin-bottom: 30px; }
+            .header-info h1 { margin: 0; color: #1e40af; font-size: 24px; text-transform: uppercase; letter-spacing: -0.5px; }
+            .header-info p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
+            .meta-box { text-align: right; font-size: 12px; color: #475569; }
+            .meta-box strong { display: block; font-size: 18px; color: #1e40af; }
+
+            /* Tabela */
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; }
+            th { background-color: #f1f5f9; color: #334155; text-align: left; padding: 12px 16px; border-bottom: 2px solid #cbd5e1; font-weight: 700; text-transform: uppercase; font-size: 11px; }
+            td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+            tr:nth-child(even) { background-color: #f8fafc; } /* Zebrado */
+            
+            /* Estilos Específicos */
+            .matricula { font-family: 'Courier New', monospace; font-weight: bold; color: #475569; }
+            .nome { font-weight: 600; color: #0f172a; }
+            
+            /* Badge de Departamento */
+            .badge { 
+              display: inline-block; padding: 4px 8px; border-radius: 4px; 
+              font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+              background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;
+            }
+
+            /* Rodapé */
+            .footer { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
+            .assinatura-box { width: 40%; border-top: 1px solid #94a3b8; padding-top: 10px; text-align: center; font-size: 12px; color: #64748b; }
+
+            @media print {
+              .no-print { display: none; }
+            }
           </style>
         </head>
         <body>
-          <h1>Quadro de Funcionários Ativos</h1>
+          
+          <div class="header">
+            <div class="header-info">
+              <h1>Quadro de Colaboradores</h1>
+              <p>Relatório de Pessoal Ativo - SGEPI</p>
+            </div>
+            <div class="meta-box">
+              Emissão: ${dataEmissao}<br>
+              Total de Registros: <strong>${totalColaboradores}</strong>
+            </div>
+          </div>
+
           <table>
-            <thead><tr><th>Matrícula</th><th>Nome</th><th>Departamento</th><th>Cargo</th></tr></thead>
+            <thead>
+              <tr>
+                <th style="width: 15%">Matrícula</th>
+                <th style="width: 35%">Nome do Colaborador</th>
+                <th style="width: 25%">Departamento</th>
+                <th style="width: 25%">Cargo / Função</th>
+              </tr>
+            </thead>
             <tbody>
               ${funcionariosFiltrados.map(f => `
                 <tr>
-                  <td>${f.matricula}</td>
-                  <td>${f.nome}</td>
-                  <td>${f.departamento.nome}</td>
+                  <td class="matricula">${f.matricula}</td>
+                  <td class="nome">${f.nome}</td>
+                  <td><span class="badge">${f.departamento.nome}</span></td>
                   <td>${f.funcao.nome}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-          <script>window.print();</script>
+
+          <div class="footer">
+            <div class="assinatura-box">
+              Gerente de Recursos Humanos
+            </div>
+            <div class="assinatura-box">
+              Responsável pelo Setor
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
         </body>
       </html>
     `;
-    const win = window.open('', '', 'width=800,height=600');
+
+    const win = window.open('', '', 'width=900,height=600');
     win.document.write(conteudoHTML);
     win.document.close();
   };
@@ -137,7 +198,6 @@ function Funcionarios() {
     const funcObj = mockFuncoes.find((f) => f.id === Number(formFuncao));
 
     if (funcSelecionado) {
-      // EDITAR
       setFuncionarios((prev) =>
         prev.map((f) =>
           f.id === funcSelecionado.id
@@ -146,7 +206,6 @@ function Funcionarios() {
         )
       );
     } else {
-      // NOVO
       const novoFunc = {
         id: Date.now(),
         nome: formNome,
