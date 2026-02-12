@@ -51,10 +51,18 @@ function Entregas() {
     return matchTexto && matchData;
   });
 
+  // --- LÓGICA DE ORDENAÇÃO (NOVA) ---
+  const entregasOrdenadas = [...entregasFiltradas].sort((a, b) => {
+    if (a.dataEntrega > b.dataEntrega) return -1; // Vem antes
+    if (a.dataEntrega < b.dataEntrega) return 1;  // Vem depois
+    return 0;
+  });
+
+  // --- LÓGICA DE PAGINAÇÃO---
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
-  const entregasVisiveis = entregasFiltradas.slice(indexPrimeiroItem, indexUltimoItem);
-  const totalPaginas = Math.ceil(entregasFiltradas.length / itensPorPagina);
+  const entregasVisiveis = entregasOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
+  const totalPaginas = Math.ceil(entregasOrdenadas.length / itensPorPagina);
 
   const aoMudarFiltro = (setter, valor) => {
       setter(valor);
@@ -66,7 +74,7 @@ function Entregas() {
       setPaginaAtual(1);
   };
 
-  // --- GERADOR DE RELATÓRIO PDF (Mantido igual) ---
+  // --- GERADOR DE RELATÓRIO PDF ---
   const imprimirRelatorioGeral = () => {
     const periodoTexto = dataInicio && dataFim 
         ? `${formatarData(dataInicio)} até ${formatarData(dataFim)}`
@@ -74,6 +82,7 @@ function Entregas() {
     
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
 
+    // O relatório imprimirá na ordem que está na tela (Ordenada)
     const conteudoHTML = `
       <html>
         <head>
@@ -114,7 +123,7 @@ function Entregas() {
           <table>
             <thead><tr><th class="col-data">Data</th><th class="col-func">Colaborador / Matrícula</th><th class="col-itens">Itens Entregues</th><th class="col-assinatura">Assinatura</th></tr></thead>
             <tbody>
-              ${entregasFiltradas.map(ent => {
+              ${entregasOrdenadas.map(ent => {
                 const func = mockFuncionarios.find(f => f.id === ent.funcionario);
                 const listaItens = ent.itens.map(i => `<span class="item-tag">${i.epiNome} (${i.tamanho}) <b>x${i.quantidade}</b></span>`).join(' ');
                 const assinaturaCell = ent.assinatura ? `<img src="${ent.assinatura}" class="img-assinatura" /><br/><span class="assinatura-label">Assinado Digitalmente</span>` : `<div class="assinatura-manual"></div><span class="assinatura-label">Assinatura Física</span>`;
@@ -122,7 +131,7 @@ function Entregas() {
               }).join('')}
             </tbody>
           </table>
-          <div class="summary">Total de Entregas Registradas: ${entregasFiltradas.length}</div>
+          <div class="summary">Total de Entregas Registradas: ${entregasOrdenadas.length}</div>
           <div class="footer"><div class="footer-line"><b>Responsável pela Entrega</b><br/>Assinatura</div><div class="footer-line"><b>Técnico de Segurança</b><br/>Visto</div></div>
           <div class="disclaimer">Declaro recebimento dos EPIs conforme NR-06.</div>
           <script>window.onload = function() { window.print(); }</script>
@@ -180,7 +189,7 @@ function Entregas() {
 
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 flex-col md:flex-row gap-3">
             <span className="text-xs text-gray-500 w-full md:w-auto text-center md:text-left">
-                Mostrando <b>{entregasFiltradas.length}</b> registros
+                Mostrando <b>{entregasOrdenadas.length}</b> registros
             </span>
             <div className="flex gap-2 w-full md:w-auto justify-center md:justify-end">
                 {(busca || dataInicio || dataFim) && (
@@ -195,7 +204,7 @@ function Entregas() {
         </div>
       </div>
 
-      {/* --- MODO DESKTOP*/}
+      {/* --- MODO DESKTOP (Tabela) --- */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
@@ -243,7 +252,7 @@ function Entregas() {
         </table>
       </div>
 
-      {/* --- MODO MOBILE/TABLET*/}
+      {/* --- MODO MOBILE/TABLET (Cards) --- */}
       <div className="lg:hidden space-y-4">
         {entregasVisiveis.length > 0 ? (
           entregasVisiveis.map((e) => {
