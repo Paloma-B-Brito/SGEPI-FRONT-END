@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 
 function Header({ paginaAtual, setPagina, onLogout }) {
-  // Estado para controlar se o menu mobile está aberto ou fechado
   const [menuAberto, setMenuAberto] = useState(false);
 
-  // Componente interno para os botões do menu
+  // Componente interno para os botões
   function Botao({ label, icone, nomePagina, isMobile = false }) {
     const ativo = paginaAtual === nomePagina;
 
@@ -12,7 +11,6 @@ function Header({ paginaAtual, setPagina, onLogout }) {
       <button
         onClick={() => {
           setPagina(nomePagina);
-          // Se for no mobile, fecha o menu após o clique para melhorar a UX
           if (isMobile) setMenuAberto(false);
         }}
         className={`
@@ -30,7 +28,6 @@ function Header({ paginaAtual, setPagina, onLogout }) {
     );
   }
 
-  // Lista de itens do menu para evitar repetição de código
   const navItems = [
     { label: "Dashboard", nome: "Dashboard", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
     { label: "Estoque", nome: "Estoque", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> },
@@ -63,23 +60,23 @@ function Header({ paginaAtual, setPagina, onLogout }) {
           {/* 2. BOTÃO HAMBÚRGUER */}
           <button 
             onClick={() => setMenuAberto(!menuAberto)}
-            className="md:hidden p-2 text-blue-100 hover:text-white focus:outline-none"
+            className="lg:hidden p-2 text-blue-100 hover:text-white focus:outline-none border border-white/20 rounded hover:bg-white/10"
           >
             {menuAberto ? (
-              // Ícone de Fechar (X)
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              // Ícone Fechar
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              // Ícone de Hambúrguer (3 linhas)
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              // Ícone Hambúrguer
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
           </button>
 
-          {/* 3. MENU DESKTOP */}
-          <nav className="hidden md:flex gap-2">
+          {/* 3. MENU DESKTOP*/}
+          <nav className="hidden lg:flex gap-2">
             {navItems.map((item) => (
               <Botao 
                 key={item.nome}
@@ -90,10 +87,10 @@ function Header({ paginaAtual, setPagina, onLogout }) {
             ))}
           </nav>
 
-          {/* 4. BOTÃO DE SAIR (Desktop) */}
+          {/* 4. BOTÃO SAIR DESKTOP */}
           <button 
             onClick={onLogout} 
-            className="hidden md:flex items-center gap-2 bg-red-500/10 hover:bg-red-600 hover:text-white text-red-200 border border-red-500/30 px-4 py-2 rounded-lg font-medium transition text-sm whitespace-nowrap"
+            className="hidden lg:flex items-center gap-2 bg-red-500/10 hover:bg-red-600 hover:text-white text-red-200 border border-red-500/30 px-4 py-2 rounded-lg font-medium transition text-sm whitespace-nowrap"
             title="Sair do Sistema"
           >
             <span>Sair</span>
@@ -103,9 +100,9 @@ function Header({ paginaAtual, setPagina, onLogout }) {
           </button>
         </div>
 
-        {/* 5. MENU MOBILE DROPDOWN  */}
+        {/* 5. MENU MOBILE DROPDOWN */}
         {menuAberto && (
-          <nav className="md:hidden mt-4 flex flex-col gap-2 pb-4 animate-fade-in-down border-t border-white/10 pt-4">
+          <nav className="lg:hidden mt-4 flex flex-col gap-2 pb-4 animate-fade-in-down border-t border-white/10 pt-4">
             {navItems.map((item) => (
               <Botao 
                 key={item.nome}
@@ -116,11 +113,10 @@ function Header({ paginaAtual, setPagina, onLogout }) {
               />
             ))}
             
-            {/* Botão Sair no Mobile */}
             <hr className="border-white/10 my-1" />
             <button 
               onClick={onLogout} 
-              className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all text-sm w-full text-red-200 hover:bg-red-600 hover:text-white"
+              className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all text-sm w-full text-red-200 hover:bg-red-600 hover:text-white bg-red-900/20"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
