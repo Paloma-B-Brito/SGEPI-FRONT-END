@@ -24,9 +24,11 @@ const mockDevolucoesInicial = [
 function Devolucoes() {
   const [devolucoes, setDevolucoes] = useState(mockDevolucoesInicial);
   const [modalAberto, setModalAberto] = useState(false);
+  
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
+
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.split("-");
@@ -142,27 +144,27 @@ function Devolucoes() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in">
+    <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
       
       {/* CABEÇALHO */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
             🔄 Devoluções e Trocas
           </h2>
           <p className="text-sm text-gray-500">Registre devoluções por defeito, vencimento ou desligamento.</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <button 
                 onClick={imprimirRelatorioDevolucoes}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 transition shadow-sm border border-gray-300 flex items-center gap-2"
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 transition shadow-sm border border-gray-300 flex items-center gap-2 justify-center w-full sm:w-auto"
             >
                 <span>🖨️</span> Relatório
             </button>
             <button
                 onClick={() => setModalAberto(true)}
-                className="bg-red-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-800 transition flex items-center gap-2 shadow-sm"
+                className="bg-red-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-800 transition flex items-center gap-2 shadow-sm justify-center w-full sm:w-auto"
             >
                 <span>➕</span> Registrar Devolução
             </button>
@@ -180,12 +182,12 @@ function Devolucoes() {
               setBusca(e.target.value);
               setPaginaAtual(1);
           }}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
+          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition text-sm lg:text-base"
         />
       </div>
 
-      {/* TABELA */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      {/* --- MODO DESKTOP*/}
+      <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
             <tr>
@@ -253,9 +255,59 @@ function Devolucoes() {
         </table>
       </div>
 
+      {/* --- MODO MOBILE/TABLET*/}
+      <div className="lg:hidden space-y-4">
+        {devolucoesVisiveis.length > 0 ? (
+          devolucoesVisiveis.map((d) => {
+            const func = mockFuncionarios.find(f => f.id === d.funcionario);
+            const epiNome = mockEpis.find(e => e.id === d.epi)?.nome;
+
+            return (
+              <div key={d.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
+                
+                {/* Cabeçalho do Card */}
+                <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            {formatarData(d.data)}
+                        </span>
+                        {d.troca ? (
+                            <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1 py-0.5 rounded border border-green-100">🔄 Troca</span>
+                        ) : (
+                            <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-1 py-0.5 rounded border border-gray-100">↩️ Devolução</span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mb-3">
+                    <h3 className="font-bold text-gray-800 text-lg">{func?.nome || "Desconhecido"}</h3>
+                    <span className="text-xs text-gray-500 block">Matrícula: {func?.matricula || "--"}</span>
+                </div>
+
+                {/* Detalhes do Item e Motivo */}
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Item:</span>
+                        <span className="text-sm font-semibold text-gray-700">{epiNome} <small className="text-gray-400">({d.tamanho})</small></span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Motivo:</span>
+                        <span className="text-xs font-bold text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200">{d.motivo}</span>
+                    </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            Nenhuma devolução encontrada.
+          </div>
+        )}
+      </div>
+
       {/* BARRA DE PAGINAÇÃO */}
       {totalPaginas > 1 && (
-        <div className="flex justify-between items-center mt-4 px-2">
+        <div className="flex justify-between items-center mt-6 px-1">
             <button
                 onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
                 disabled={paginaAtual === 1}
@@ -264,8 +316,8 @@ function Devolucoes() {
                 ← Anterior
             </button>
 
-            <span className="text-sm text-gray-600">
-                Página <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
+            <span className="text-xs lg:text-sm text-gray-600">
+                Pág. <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
             </span>
 
             <button
