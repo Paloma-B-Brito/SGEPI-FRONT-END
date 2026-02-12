@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 function Header({ paginaAtual, setPagina, onLogout }) {
+  // Estado para controlar se o menu mobile está aberto ou fechado
   const [menuAberto, setMenuAberto] = useState(false);
 
   // Componente interno para os botões do menu
@@ -11,6 +12,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
       <button
         onClick={() => {
           setPagina(nomePagina);
+          // Se for no mobile, fecha o menu após o clique para melhorar a UX
           if (isMobile) setMenuAberto(false);
         }}
         className={`
@@ -28,6 +30,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
     );
   }
 
+  // Lista de itens do menu para evitar repetição de código
   const navItems = [
     { label: "Dashboard", nome: "Dashboard", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
     { label: "Estoque", nome: "Estoque", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> },
@@ -41,7 +44,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
     <header className="bg-gradient-to-r from-slate-900 to-blue-900 text-white shadow-xl sticky top-0 z-50">
       <div className="flex flex-col px-6 py-3">
         
-        {/* BARRA SUPERIOR (Logo + Toggle Mobile + Sair Desktop) */}
+        {/* BARRA SUPERIOR */}
         <div className="flex justify-between items-center w-full">
           
           {/* 1. LOGO */}
@@ -57,22 +60,25 @@ function Header({ paginaAtual, setPagina, onLogout }) {
             </div>
           </div>
 
-          {/* 2. BOTÃO HAMBÚRGUER (Visível apenas no Mobile 'md:hidden') */}
+          {/* 2. BOTÃO HAMBÚRGUER */}
           <button 
             onClick={() => setMenuAberto(!menuAberto)}
             className="md:hidden p-2 text-blue-100 hover:text-white focus:outline-none"
           >
             {menuAberto ? (
+              // Ícone de Fechar (X)
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
+              // Ícone de Hambúrguer (3 linhas)
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
           </button>
 
+          {/* 3. MENU DESKTOP */}
           <nav className="hidden md:flex gap-2">
             {navItems.map((item) => (
               <Botao 
@@ -97,7 +103,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
           </button>
         </div>
 
-        {/* 5. MENU MOBILE DROPDOWN (Só aparece se menuAberto for true) */}
+        {/* 5. MENU MOBILE DROPDOWN  */}
         {menuAberto && (
           <nav className="md:hidden mt-4 flex flex-col gap-2 pb-4 animate-fade-in-down border-t border-white/10 pt-4">
             {navItems.map((item) => (
