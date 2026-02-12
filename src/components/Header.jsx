@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 
 function Header({ paginaAtual, setPagina, onLogout }) {
+  // Estado para controlar o menu mobile
   const [menuAberto, setMenuAberto] = useState(false);
 
+  // Componente interno para os botões
   function Botao({ label, icone, nomePagina, isMobile = false }) {
     const ativo = paginaAtual === nomePagina;
+
     return (
       <button
         onClick={() => {
           setPagina(nomePagina);
-          if (isMobile) setMenuAberto(false);
+          if (isMobile) setMenuAberto(false); // Fecha ao clicar no mobile
         }}
         className={`
           flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all text-sm whitespace-nowrap
@@ -39,7 +42,10 @@ function Header({ paginaAtual, setPagina, onLogout }) {
     <header className="bg-gradient-to-r from-slate-900 to-blue-900 text-white shadow-xl sticky top-0 z-50">
       <div className="flex flex-col px-6 py-3">
         
+        {/* BARRA SUPERIOR */}
         <div className="flex justify-between items-center w-full">
+          
+          {/* 1. LOGO */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
                <svg className="w-6 h-6 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -52,21 +58,25 @@ function Header({ paginaAtual, setPagina, onLogout }) {
             </div>
           </div>
 
+          {/* 2. BOTÃO HAMBÚRGUER */}
           <button 
             onClick={() => setMenuAberto(!menuAberto)}
-            className="lg:hidden p-2 text-blue-100 hover:text-white focus:outline-none"
+            className="lg:hidden p-2 text-blue-100 hover:text-white focus:outline-none border border-white/10 rounded hover:bg-white/10 transition"
           >
             {menuAberto ? (
+              // Ícone X (Fechar)
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
+              // Ícone Menu (3 riscos)
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
           </button>
 
+          {/* 3. MENU DESKTOP (Aparece apenas em telas maiores que LG) */}
           <nav className="hidden lg:flex gap-2">
             {navItems.map((item) => (
               <Botao 
@@ -78,6 +88,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
             ))}
           </nav>
 
+          {/* 4. BOTÃO SAIR DESKTOP */}
           <button 
             onClick={onLogout} 
             className="hidden lg:flex items-center gap-2 bg-red-500/10 hover:bg-red-600 hover:text-white text-red-200 border border-red-500/30 px-4 py-2 rounded-lg font-medium transition text-sm whitespace-nowrap"
@@ -90,7 +101,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
           </button>
         </div>
 
-        {/* Menu Mobile */}
+        {/* 5. MENU MOBILE DROPDOWN*/}
         {menuAberto && (
           <nav className="lg:hidden mt-4 flex flex-col gap-2 pb-4 animate-fade-in-down border-t border-white/10 pt-4">
             {navItems.map((item) => (
@@ -102,6 +113,7 @@ function Header({ paginaAtual, setPagina, onLogout }) {
                 isMobile={true}
               />
             ))}
+            
             <hr className="border-white/10 my-1" />
             <button 
               onClick={onLogout} 
