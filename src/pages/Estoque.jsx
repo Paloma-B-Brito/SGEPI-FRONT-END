@@ -115,15 +115,15 @@ function Estoque() {
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 max-w-full">
       
       {/* CABEÇALHO */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
             📦 Controle de Estoque
           </h2>
           <p className="text-sm text-gray-500">Gerencie tamanhos, CAs e validades.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <button
             onClick={() => {
               setBusca("");
@@ -148,13 +148,13 @@ function Estoque() {
                 setBusca(e.target.value);
                 setPaginaAtual(1);
             }}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm md:text-base"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm lg:text-base"
           />
         </div>
       </div>
 
       {/* --- VISUALIZAÇÃO DESKTOP (TABELA) --- */}
-      <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
+      <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
             <tr>
@@ -214,8 +214,8 @@ function Estoque() {
         </table>
       </div>
 
-      {/* --- VISUALIZAÇÃO MOBILE (CARDS) --- */}
-      <div className="md:hidden space-y-4">
+      {/* --- VISUALIZAÇÃO MOBILE/TABLET (CARDS) --- */}
+      <div className="lg:hidden space-y-4">
         {itensVisiveis.length > 0 ? (
           itensVisiveis.map((epi) => {
             const dados = epi.variacoes[epi.tamanhoAtual];
@@ -288,7 +288,7 @@ function Estoque() {
                 ← Anterior
             </button>
 
-            <span className="text-xs md:text-sm text-gray-600">
+            <span className="text-xs lg:text-sm text-gray-600">
                 Pág. <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b>
             </span>
 
