@@ -35,7 +35,7 @@ function Devolucoes() {
     return `${dia}/${mes}/${ano}`;
   };
 
-  // --- LÓGICA DE FILTRO E PAGINAÇÃO ---
+  // --- LÓGICA DE FILTRO ---
   const devolucoesFiltradas = devolucoes.filter((d) => {
     const func = mockFuncionarios.find(f => f.id === d.funcionario);
     const termo = busca.toLowerCase();
@@ -46,10 +46,20 @@ function Devolucoes() {
     return matchFuncionario || matchMotivo;
   });
 
+  // --- LÓGICA DE ORDENAÇÃO ---
+  const devolucoesOrdenadas = [...devolucoesFiltradas].sort((a, b) => {
+    // Compara datas strings "YYYY-MM-DD"
+    // Se b > a, b vem primeiro (decrescente)
+    if (a.data < b.data) return 1;
+    if (a.data > b.data) return -1;
+    return 0;
+  });
+
+  // --- PAGINAÇÃO --
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
-  const devolucoesVisiveis = devolucoesFiltradas.slice(indexPrimeiroItem, indexUltimoItem);
-  const totalPaginas = Math.ceil(devolucoesFiltradas.length / itensPorPagina);
+  const devolucoesVisiveis = devolucoesOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
+  const totalPaginas = Math.ceil(devolucoesOrdenadas.length / itensPorPagina);
 
   const imprimirRelatorioDevolucoes = () => {
     const conteudo = `
@@ -88,7 +98,7 @@ function Devolucoes() {
             </div>
             <div class="meta">
               <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
-              <p>Total de Registros: ${devolucoesFiltradas.length}</p>
+              <p>Total de Registros: ${devolucoesOrdenadas.length}</p>
             </div>
           </div>
 
@@ -103,7 +113,7 @@ function Devolucoes() {
               </tr>
             </thead>
             <tbody>
-              ${devolucoesFiltradas.map(d => {
+              ${devolucoesOrdenadas.map(d => {
                 const func = mockFuncionarios.find(f => f.id === d.funcionario);
                 const epi = mockEpis.find(e => e.id === d.epi);
                 const trocaClass = d.troca ? 'badge-sim' : 'badge-nao';
@@ -186,7 +196,7 @@ function Devolucoes() {
         />
       </div>
 
-      {/* --- MODO DESKTOP*/}
+      {/* --- MODO DESKTOP (Tabela) --- */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -255,7 +265,7 @@ function Devolucoes() {
         </table>
       </div>
 
-      {/* --- MODO MOBILE/TABLET*/}
+      {/* --- MODO MOBILE/TABLET (Cards) --- */}
       <div className="lg:hidden space-y-4">
         {devolucoesVisiveis.length > 0 ? (
           devolucoesVisiveis.map((d) => {
