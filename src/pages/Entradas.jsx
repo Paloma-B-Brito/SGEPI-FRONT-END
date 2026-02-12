@@ -50,7 +50,7 @@ function Entradas() {
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
-  // Filtros
+  // --- LÓGICA DE FILTRAGEM ---
   const entradasFiltradas = entradas.filter((e) => {
     const termo = busca.toLowerCase();
     const nomeEpi = mockEpis.find(item => item.id === e.epi)?.nome.toLowerCase() || "";
@@ -60,13 +60,20 @@ function Entradas() {
     return nomeEpi.includes(termo) || nomeFornecedor.includes(termo) || numeroLote.includes(termo);
   });
 
+  // --- LÓGICA DE ORDENAÇÃO ---
+  const entradasOrdenadas = [...entradasFiltradas].sort((a, b) => {
+    if (a.dataEntrada < b.dataEntrada) return 1;
+    if (a.dataEntrada > b.dataEntrada) return -1;
+    return 0;
+  });
+
+  // --- PAGINAÇÃO---
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
-  const entradasVisiveis = entradasFiltradas.slice(indexPrimeiroItem, indexUltimoItem);
-  const totalPaginas = Math.ceil(entradasFiltradas.length / itensPorPagina);
+  const entradasVisiveis = entradasOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
+  const totalPaginas = Math.ceil(entradasOrdenadas.length / itensPorPagina);
 
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epi));
-
 
   function abrirModal() {
     setResponsavel(""); setEpi(""); setTamanho("");
@@ -133,7 +140,7 @@ function Entradas() {
         />
       </div>
 
-      {/* --- MODO DESKTOP*/}
+      {/* --- MODO DESKTOP (Tabela) --- */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -251,7 +258,7 @@ function Entradas() {
         </div>
       )}
 
-      {/* MODAL*/}
+      {/* MODAL */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
