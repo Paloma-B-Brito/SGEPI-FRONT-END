@@ -1,4 +1,6 @@
 import { useState } from "react";
+
+// --- 1. DADOS MOCKADOS (Simulando o Banco de Dados) ---
 const mockDepartamentos = [
   { id: 1, nome: "Produção", cor: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: 2, nome: "Segurança do Trabalho", cor: "bg-green-100 text-green-700 border-green-200" },
@@ -49,17 +51,23 @@ function Funcionarios() {
   const [formDepartamento, setFormDepartamento] = useState("");
   const [formFuncao, setFormFuncao] = useState("");
 
-  // --- LÓGICA DE FILTRAGEM ---
-  const funcionariosFiltrados = funcionarios.filter((f) =>
+  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ---
+  // 1. Filtra
+  const listaFiltrada = funcionarios.filter((f) =>
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
     f.matricula.includes(busca)
   );
 
+  // 2. Ordena Alfabeticamente (A-Z)
+  const funcionariosOrdenados = listaFiltrada.sort((a, b) => {
+    return a.nome.localeCompare(b.nome);
+  });
+
   // --- LÓGICA DE PAGINAÇÃO ---
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
-  const funcionariosVisiveis = funcionariosFiltrados.slice(indexPrimeiroItem, indexUltimoItem);
-  const totalPaginas = Math.ceil(funcionariosFiltrados.length / itensPorPagina);
+  const funcionariosVisiveis = funcionariosOrdenados.slice(indexPrimeiroItem, indexUltimoItem);
+  const totalPaginas = Math.ceil(funcionariosOrdenados.length / itensPorPagina);
 
   // Lógica dinâmica para o Select de Funções (depende do Depto selecionado)
   const funcoesDisponiveis = mockFuncoes.filter(
@@ -69,7 +77,7 @@ function Funcionarios() {
   // --- FUNÇÃO: IMPRIMIR RELATÓRIO ---
   const imprimirListaColaboradores = () => {
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
-    const totalColaboradores = funcionariosFiltrados.length;
+    const totalColaboradores = funcionariosOrdenados.length;
 
     const conteudoHTML = `
       <html>
@@ -122,7 +130,7 @@ function Funcionarios() {
               </tr>
             </thead>
             <tbody>
-              ${funcionariosFiltrados.map(f => `
+              ${funcionariosOrdenados.map(f => `
                 <tr>
                   <td class="matricula">${f.matricula}</td>
                   <td class="nome">${f.nome}</td>
@@ -308,6 +316,8 @@ function Funcionarios() {
         {funcionariosVisiveis.length > 0 ? (
           funcionariosVisiveis.map((func) => (
             <div key={func.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
+                
+                {/* Linha 1: Nome e Matrícula */}
                 <div className="flex justify-between items-start mb-2">
                     <div>
                         <h3 className="font-bold text-gray-800 text-lg">{func.nome}</h3>
@@ -316,6 +326,8 @@ function Funcionarios() {
                         </span>
                     </div>
                 </div>
+
+                {/* Linha 2: Detalhes do Cargo e Dept */}
                 <div className="space-y-2 mt-3">
                     <div>
                         <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${func.departamento.cor}`}>
@@ -327,6 +339,8 @@ function Funcionarios() {
                         {func.funcao.nome}
                     </div>
                 </div>
+
+                {/* Linha 3: Botões de Ação Grandes */}
                 <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
                     <button 
                         onClick={() => abrirEdicao(func)}
@@ -379,6 +393,8 @@ function Funcionarios() {
       {modalAberto && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
+            
+            {/* Cabeçalho do Modal */}
             <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center shrink-0">
               <h3 className="text-lg font-bold text-gray-800">
                 {funcSelecionado ? "✏️ Editar Colaborador" : "➕ Novo Colaborador"}
@@ -386,7 +402,9 @@ function Funcionarios() {
               <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
             </div>
 
+            {/* Corpo do Modal com Scroll */}
             <div className="p-6 space-y-4 overflow-y-auto">
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
                 <input 
