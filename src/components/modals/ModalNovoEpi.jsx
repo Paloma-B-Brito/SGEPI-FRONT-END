@@ -25,12 +25,21 @@ function ModalNovoEpi({ onClose }) {
   const [dataValidadeCa, setDataValidadeCa] = useState("");
   const [protecao, setProtecao] = useState("");
   const [alertaMinimo, setAlertaMinimo] = useState(10);
-  const [tamanhoSelecionado, setTamanhoSelecionado] = useState("");
+  const [tamanhosSelecionados, setTamanhosSelecionados] = useState([]);
+
+  function toggleTamanho(tamanho) {
+    setTamanhosSelecionados((prev) => {
+      if (prev.includes(tamanho)) {
+        return prev.filter((t) => t !== tamanho);
+      } else {
+        return [...prev, tamanho];
+      }
+    });
+  }
 
   function salvarEpi() {
-    // Validação
-    if (!nome || !fabricante || !ca || !protecao || !tamanhoSelecionado) {
-      alert("Por favor, preencha os campos obrigatórios (*)");
+    if (!nome || !fabricante || !ca || !protecao || tamanhosSelecionados.length === 0) {
+      alert("Por favor, preencha os campos obrigatórios (*) e selecione ao menos um tamanho.");
       return;
     }
 
@@ -43,10 +52,10 @@ function ModalNovoEpi({ onClose }) {
       data_validade_ca: dataValidadeCa,
       id_protecao: Number(protecao),
       alerta_minimo: Number(alertaMinimo),
-      tamanho: tamanhoSelecionado,
+      tamanhos: tamanhosSelecionados,
     };
 
-    console.log("Novo EPI Cadastrado:", epi);
+    console.log("Novo EPI Cadastrado com múltiplos tamanhos:", epi);
     onClose();
   }
 
@@ -80,7 +89,7 @@ function ModalNovoEpi({ onClose }) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome do EPI <span className="text-red-500">*</span></label>
                         <input
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="Ex: Luva de Vaqueta"
+                            placeholder="Ex: Luva de Vaqueta ou Bota de Segurança"
                             value={nome}
                             onChange={(e) => setNome(e.target.value)}
                         />
@@ -151,28 +160,41 @@ function ModalNovoEpi({ onClose }) {
 
             {/* SEÇÃO 3: ESTOQUE E VARIAÇÃO */}
             <div>
-                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Configuração de Estoque</h3>
+                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Configuração de Tamanhos</h3>
                  
-                 <label className="block text-sm font-medium text-gray-700 mb-2">Tamanho Principal <span className="text-red-500">*</span></label>
-                 <div className="flex flex-wrap gap-2 mb-4">
-                    {tamanhosDisponiveis.map((t) => (
-                        <button
-                            key={t}
-                            type="button"
-                            onClick={() => setTamanhoSelecionado(t)}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-all ${
-                                tamanhoSelecionado === t
-                                    ? "bg-slate-700 text-white border-slate-700 shadow-md transform scale-105"
-                                    : "bg-white text-gray-600 border-gray-200 hover:border-slate-400 hover:text-slate-800"
-                            }`}
-                        >
-                            {t}
-                        </button>
-                    ))}
+                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tamanhos Disponíveis <span className="text-red-500">*</span>
+                    <span className="text-xs font-normal text-gray-500 ml-2">(Clique para selecionar múltiplos)</span>
+                 </label>
+                 
+                 <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
+                    {tamanhosDisponiveis.map((t) => {
+                        const isSelected = tamanhosSelecionados.includes(t);
+                        return (
+                            <button
+                                key={t}
+                                type="button"
+                                onClick={() => toggleTamanho(t)}
+                                className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-all ${
+                                    isSelected
+                                        ? "bg-slate-700 text-white border-slate-700 shadow-md transform scale-105 ring-2 ring-offset-1 ring-slate-300"
+                                        : "bg-white text-gray-500 border-gray-200 hover:border-slate-400 hover:text-slate-800"
+                                }`}
+                            >
+                                {t}
+                            </button>
+                        );
+                    })}
                  </div>
+                 
+                 {tamanhosSelecionados.length > 0 && (
+                    <p className="text-xs text-green-600 font-semibold mb-4 animate-pulse">
+                        {tamanhosSelecionados.length} tamanho(s) selecionado(s): {tamanhosSelecionados.join(", ")}
+                    </p>
+                 )}
 
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Alerta de Estoque Mínimo</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Alerta de Estoque Mínimo (Geral)</label>
                     <div className="flex items-center gap-3">
                         <input
                             type="number"
@@ -181,7 +203,7 @@ function ModalNovoEpi({ onClose }) {
                             value={alertaMinimo}
                             onChange={(e) => setAlertaMinimo(Number(e.target.value))}
                         />
-                        <span className="text-sm text-gray-500">unidades (O sistema avisará quando chegar neste valor)</span>
+                        <span className="text-sm text-gray-500">unidades por tamanho</span>
                     </div>
                  </div>
             </div>

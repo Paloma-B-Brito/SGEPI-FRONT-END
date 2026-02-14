@@ -1,306 +1,514 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// MOCK DATA (Funcionários que podem receber a mercadoria)
+// --- 1. MOCK DATA: BANCO DE DADOS SIMULADO ---
+
+// Lista de Funcionários
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", cargo: "Almoxarife", matricula: "483920" },
   { id: 2, nome: "Maria Santos", cargo: "Gerente", matricula: "739104" },
   { id: 3, nome: "Carlos Oliveira", cargo: "Supervisor", matricula: "102938" },
+  { id: 4, nome: "Ana Pereira", cargo: "Auxiliar Logístico", matricula: "998877" },
 ];
 
+// Lista de Fornecedores 
+const mockFornecedores = [
+  { id: 1, nome: "3M do Brasil Ltda", cnpj: "45.985.371/0001-08", contato: "vendas@3m.com" },
+  { id: 2, nome: "Bracol Calçados de Segurança", cnpj: "12.345.678/0001-90", contato: "comercial@bracol.com.br" },
+  { id: 3, nome: "Volk do Brasil", cnpj: "98.765.432/0001-10", contato: "sac@volk.com" },
+  { id: 4, nome: "Danny EPIs", cnpj: "11.222.333/0001-44", contato: "contato@danny.com.br" },
+  { id: 5, nome: "Promat Indústria", cnpj: "55.666.777/0001-99", contato: "vendas@promat.com" },
+];
+
+// Lista de Produtos/EPIs
 const mockEpis = [
-  { id: 1, nome: "Capacete de Segurança", tamanhos: ["P", "M", "G"] },
-  { id: 2, nome: "Luva de Raspa", tamanhos: ["P", "M", "G", "GG"] },
-  { id: 3, nome: "Sapato de Segurança", tamanhos: ["38", "40", "42", "44"] },
-  { id: 4, nome: "Óculos de Proteção", tamanhos: ["Único"] },
-  { id: 5, nome: "Protetor Auricular", tamanhos: ["Único"] },
+  { id: 1, nome: "Capacete de Segurança", ca: "32.145", tamanhos: ["P", "M", "G"] },
+  { id: 2, nome: "Luva de Raspa", ca: "15.400", tamanhos: ["P", "M", "G", "GG"] },
+  { id: 3, nome: "Sapato de Segurança", ca: "40.222", tamanhos: ["38", "40", "42", "44"] },
+  { id: 4, nome: "Óculos de Proteção", ca: "11.200", tamanhos: ["Único"] },
+  { id: 5, nome: "Protetor Auricular", ca: "19.100", tamanhos: ["Único"] },
 ];
 
 function ModalEntrada({ onClose }) {
-  // --- DADOS GERAIS DA NOTA / ENTRADA ---
-  const [responsavel, setResponsavel] = useState("");
-  const [buscaResponsavel, setBuscaResponsavel] = useState(""); // Busca da lista customizada
-  const [fornecedor, setFornecedor] = useState("");
+  // --- ESTADOS GERAIS DA NOTA FISCAL ---
+  
+  // Dados do Cabeçalho
   const [notaFiscal, setNotaFiscal] = useState("");
   const [dataEntrada, setDataEntrada] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Estado do Fornecedor 
+  const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null); 
+  const [buscaFornecedor, setBuscaFornecedor] = useState(""); 
+  
+  // Estado do Responsável
+  const [responsavelSelecionado, setResponsavelSelecionado] = useState(null);
+  const [buscaResponsavel, setBuscaResponsavel] = useState("");
 
-  // --- LISTA DE ITENS DA NOTA ---
+  // --- ESTADOS DOS ITENS (CARRINHO) ---
   const [itensEntrada, setItensEntrada] = useState([]);
 
-  // --- CAMPOS DO ITEM ATUAL ---
-  const [epiTemp, setEpiTemp] = useState("");
+  // --- ESTADOS DO FORMULÁRIO DE ADIÇÃO DE ITEM ---
+  const [epiId, setEpiId] = useState("");
   const [tamanhoTemp, setTamanhoTemp] = useState("");
   const [qtdTemp, setQtdTemp] = useState(1);
   const [precoTemp, setPrecoTemp] = useState("");
   const [validadeTemp, setValidadeTemp] = useState("");
 
-  const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epiTemp));
+  // --- HELPER: Objeto do EPI selecionado atualmente no dropdown ---
+  const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epiId));
 
-  // Filtro da Lista de Responsáveis
+  // --- HELPER: Filtros de Busca (Search Logic) ---
+  
+  // Filtra fornecedores pelo nome ou CNPJ
+  const fornecedoresFiltrados = mockFornecedores.filter((f) => 
+    f.nome.toLowerCase().includes(buscaFornecedor.toLowerCase()) ||
+    f.cnpj.includes(buscaFornecedor)
+  );
+
+  // Filtra responsáveis pelo nome ou matrícula
   const responsaveisFiltrados = mockFuncionarios.filter((f) => 
     f.nome.toLowerCase().includes(buscaResponsavel.toLowerCase()) ||
     f.matricula.includes(buscaResponsavel)
   );
 
+  // --- CÁLCULO DE TOTAIS ---
+  const valorTotalNota = itensEntrada.reduce((acc, item) => acc + (item.quantidade * item.preco), 0);
+
+  // --- FUNÇÕES DE AÇÃO ---
+
+  // 1. Adicionar Item na Lista
   function adicionarItem() {
-    if (!epiTemp || !qtdTemp || !precoTemp) {
-        alert("Preencha o EPI, quantidade e valor unitário.");
+    // Validações básicas
+    if (!epiId || !qtdTemp || !precoTemp) {
+        alert("Atenção: Preencha o EPI, a quantidade e o valor unitário.");
         return;
     }
 
     if (epiSelecionadoObj?.tamanhos.length > 0 && !tamanhoTemp) {
-        alert("Selecione o tamanho do EPI.");
+        alert("Atenção: É necessário selecionar o tamanho do EPI.");
         return;
     }
 
+    // Cria o objeto do item
     const novoItem = {
-      id: Date.now(),
+      id: Date.now(), // ID único temporário
+      epiId: epiId,
       epiNome: epiSelecionadoObj.nome,
+      ca: epiSelecionadoObj.ca,
       tamanho: tamanhoTemp || "Único",
       quantidade: Number(qtdTemp),
       preco: Number(precoTemp),
-      validade: validadeTemp || "N/A"
+      validade: validadeTemp || "N/A",
+      totalItem: Number(qtdTemp) * Number(precoTemp)
     };
 
+    // Atualiza a lista
     setItensEntrada([...itensEntrada, novoItem]);
     
-    // Resetar campos do item
-    setEpiTemp("");
+    // Limpa os campos do formulário de item para facilitar a próxima inserção
+    setEpiId("");
     setTamanhoTemp("");
     setQtdTemp(1);
     setPrecoTemp("");
     setValidadeTemp("");
   }
 
+  // 2. Remover Item da Lista
   function removerItem(id) {
-    setItensEntrada(itensEntrada.filter(i => i.id !== id));
+    if(window.confirm("Deseja remover este item da lista?")) {
+        setItensEntrada(itensEntrada.filter(i => i.id !== id));
+    }
   }
 
+  // 3. Salvar Entrada Completa (Finalizar)
   function salvarEntrada() {
-    if (!responsavel || !fornecedor || itensEntrada.length === 0) {
-      alert("Preencha o responsável, fornecedor e adicione itens.");
+    // Validações Finais
+    if (!fornecedorSelecionado) {
+      alert("Erro: Você deve selecionar um Fornecedor da lista.");
+      return;
+    }
+    if (!responsavelSelecionado) {
+      alert("Erro: Informe quem recebeu a mercadoria.");
+      return;
+    }
+    if (!notaFiscal) {
+      alert("Erro: Digite o número da Nota Fiscal.");
+      return;
+    }
+    if (itensEntrada.length === 0) {
+      alert("Erro: A lista de itens está vazia.");
       return;
     }
 
+    // Monta o objeto final para enviar ao Backend/API
     const entradaFinal = {
-      responsavel,
-      fornecedor,
-      notaFiscal,
-      data: dataEntrada,
-      itens: itensEntrada
+      id_entrada: Date.now(),
+      data_registro: new Date(),
+      data_nota: dataEntrada,
+      numero_nota: notaFiscal,
+      id_fornecedor: fornecedorSelecionado.id,
+      nome_fornecedor: fornecedorSelecionado.nome, // redundância para histórico
+      id_responsavel: responsavelSelecionado.id,
+      itens: itensEntrada,
+      valor_total: valorTotalNota
     };
 
-    console.log("Entrada Registrada:", entradaFinal);
+    console.log("=== ENTRADA REGISTRADA COM SUCESSO ===");
+    console.log(entradaFinal);
+    
+    alert(`Sucesso! Entrada da NF ${notaFiscal} registrada.`);
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-50 bg-slate-900 bg-opacity-60 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-fade-in flex flex-col max-h-[95vh] border border-slate-200">
         
-        {/* CABEÇALHO*/}
-        <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
-               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        {/* === CABEÇALHO DO MODAL === */}
+        <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center shadow-md z-10">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg text-white">
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-            </span>
-            <h2 className="text-xl font-bold text-emerald-900">
-              Registrar Entrada (Nota Fiscal)
-            </h2>
+            </div>
+            <div>
+                <h2 className="text-xl font-bold text-white leading-tight">
+                Entrada de Nota Fiscal
+                </h2>
+                <p className="text-emerald-100 text-xs">Registro de estoque por fornecedor único</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">✕</button>
+          <button 
+            onClick={onClose} 
+            className="text-emerald-100 hover:text-white hover:bg-emerald-700 p-2 rounded-full transition"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* CORPO SCROLLÁVEL */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        {/* === CORPO DO MODAL (COM SCROLL) === */}
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-6">
 
-            {/* SEÇÃO 1: DADOS DA NOTA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* RESPONSÁVEL PELA ENTRADA */}
-                <div className="md:col-span-1 flex flex-col gap-1">
-                    <label className="block text-sm font-medium text-slate-700">Recebido Por</label>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
-                        <input 
-                            type="text"
-                            placeholder="Buscar nome..."
-                            className="w-full pl-9 p-2 border border-slate-300 rounded-t-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50 transition"
-                            value={buscaResponsavel}
-                            onChange={(e) => setBuscaResponsavel(e.target.value)}
-                        />
-                    </div>
-                    <div className="w-full border border-slate-300 rounded-b-lg -mt-1 bg-white max-h-32 overflow-y-auto border-t-0">
-                        {responsaveisFiltrados.length === 0 ? (
-                             <div className="p-2 text-xs text-gray-400 text-center italic">Não encontrado</div>
+            {/* --- BLOCO 1: DADOS DA NOTA E FORNECEDOR --- */}
+            <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">
+                    1. Dados da Nota Fiscal
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    
+                    {/* SELEÇÃO DE FORNECEDOR (LÓGICA PEDIDA PELO AMIGO) */}
+                    <div className="md:col-span-6">
+                        <label className="block text-sm font-bold text-slate-700 mb-1">
+                            Fornecedor (Emissor da Nota) <span className="text-red-500">*</span>
+                        </label>
+                        
+                        {/* Se já selecionou, mostra o CARD do fornecedor fixo */}
+                        {fornecedorSelecionado ? (
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex justify-between items-center">
+                                <div>
+                                    <p className="font-bold text-emerald-900">{fornecedorSelecionado.nome}</p>
+                                    <p className="text-xs text-emerald-600">CNPJ: {fornecedorSelecionado.cnpj}</p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setFornecedorSelecionado(null);
+                                        setBuscaFornecedor("");
+                                    }}
+                                    className="text-xs text-red-500 hover:text-red-700 font-medium underline px-2"
+                                >
+                                    Trocar
+                                </button>
+                            </div>
                         ) : (
-                            responsaveisFiltrados.map((f) => {
-                                const isSelected = Number(responsavel) === f.id;
-                                return (
-                                    <div 
-                                        key={f.id} 
-                                        onClick={() => setResponsavel(f.id)}
-                                        className={`
-                                            p-2 text-sm cursor-pointer border-b border-gray-50 last:border-0 transition-colors
-                                            ${isSelected 
-                                                ? "bg-emerald-100 text-emerald-800 font-medium" 
-                                                : "text-slate-600 hover:bg-emerald-50"
-                                            }
-                                        `}
-                                    >
-                                        {f.nome}
+                            /* Se não selecionou, mostra a busca */
+                            <div className="relative">
+                                <input 
+                                    type="text"
+                                    placeholder="Digite o nome ou CNPJ..."
+                                    className="w-full pl-3 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition"
+                                    value={buscaFornecedor}
+                                    onChange={(e) => setBuscaFornecedor(e.target.value)}
+                                />
+                                {/* Lista suspensa de resultados */}
+                                {buscaFornecedor.length > 0 && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                        {fornecedoresFiltrados.length === 0 ? (
+                                            <div className="p-3 text-sm text-slate-400 italic">Nenhum fornecedor encontrado.</div>
+                                        ) : (
+                                            fornecedoresFiltrados.map((f) => (
+                                                <div 
+                                                    key={f.id}
+                                                    onClick={() => {
+                                                        setFornecedorSelecionado(f);
+                                                        setBuscaFornecedor(""); // Limpa busca visual
+                                                    }}
+                                                    className="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0"
+                                                >
+                                                    <p className="text-sm font-bold text-slate-700">{f.nome}</p>
+                                                    <p className="text-xs text-slate-500">CNPJ: {f.cnpj}</p>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
-                                );
-                            })
+                                )}
+                            </div>
                         )}
                     </div>
-                </div>
 
-                <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Fornecedor</label>
-                        <input 
-                            className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                            placeholder="Ex: 3M do Brasil"
-                            value={fornecedor}
-                            onChange={(e) => setFornecedor(e.target.value)}
-                        />
-                    </div>
-                    <div>
+                    {/* Número da Nota e Data */}
+                    <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nº Nota Fiscal</label>
                         <input 
+                            type="text" 
                             className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                            placeholder="000.000"
+                            placeholder="Ex: 000.456"
                             value={notaFiscal}
                             onChange={(e) => setNotaFiscal(e.target.value)}
                         />
                     </div>
+                    <div className="md:col-span-3">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Data Emissão</label>
+                        <input 
+                            type="date" 
+                            className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-slate-600"
+                            value={dataEntrada}
+                            onChange={(e) => setDataEntrada(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Linha do Responsável */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Responsável pelo Recebimento</label>
+                    {responsavelSelecionado ? (
+                        <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200 w-fit">
+                            <span className="text-sm font-semibold text-slate-700">👤 {responsavelSelecionado.nome}</span>
+                            <button onClick={() => setResponsavelSelecionado(null)} className="text-slate-400 hover:text-red-500">✕</button>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <input 
+                                type="text"
+                                placeholder="Quem recebeu? (Busque por nome)"
+                                className="w-full md:w-1/2 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                                value={buscaResponsavel}
+                                onChange={(e) => setBuscaResponsavel(e.target.value)}
+                            />
+                            {buscaResponsavel.length > 0 && (
+                                <div className="absolute z-10 w-full md:w-1/2 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                                    {responsaveisFiltrados.map((f) => (
+                                        <div 
+                                            key={f.id}
+                                            onClick={() => {
+                                                setResponsavelSelecionado(f);
+                                                setBuscaResponsavel("");
+                                            }}
+                                            className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm text-slate-700"
+                                        >
+                                            {f.nome} <span className="text-xs text-slate-400">({f.cargo})</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <hr className="border-slate-100" />
+            {/* --- BLOCO 2: INSERÇÃO DE ITENS --- */}
+            <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative">
+                {/* Bloqueio visual se não tiver fornecedor selecionado */}
+                {!fornecedorSelecionado && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
+                        <span className="bg-slate-800 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                            ⚠️ Selecione o Fornecedor primeiro
+                        </span>
+                    </div>
+                )}
 
-            {/* SEÇÃO 2: ADICIONAR ITEM */}
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    📦 Adicionar Itens da Nota
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2 flex justify-between">
+                    2. Itens da Nota
                 </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50 p-4 rounded-lg border border-slate-100">
                     
-                    {/* EPI */}
-                    <div className="md:col-span-2">
-                        <label className="text-xs text-slate-500 mb-1 block font-bold">Item</label>
-                        <select
-                            className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-600 outline-none"
-                            value={epiTemp}
+                    {/* Select EPI */}
+                    <div className="md:col-span-4">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1">Produto / EPI</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-600 outline-none text-sm"
+                            value={epiId}
                             onChange={(e) => {
-                                setEpiTemp(e.target.value);
-                                setTamanhoTemp("");
+                                setEpiId(e.target.value);
+                                setTamanhoTemp(""); // Reset tamanho ao mudar EPI
                             }}
                         >
-                            <option value="">Selecione...</option>
-                            {mockEpis.map((e) => (<option key={e.id} value={e.id}>{e.nome}</option>))}
+                            <option value="">Selecione o item...</option>
+                            {mockEpis.map(epi => (
+                                <option key={epi.id} value={epi.id}>{epi.nome}</option>
+                            ))}
                         </select>
                     </div>
 
-                    {/* Tamanho */}
-                    <div>
-                        <label className="text-xs text-slate-500 mb-1 block font-bold">Tam.</label>
-                        <select
-                            className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-600 outline-none disabled:bg-slate-100"
+                    {/* Select Tamanho (Dinâmico) */}
+                    <div className="md:col-span-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1">Tamanho</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-600 outline-none text-sm disabled:bg-slate-200"
                             value={tamanhoTemp}
                             onChange={(e) => setTamanhoTemp(e.target.value)}
                             disabled={!epiSelecionadoObj}
                         >
                             <option value="">-</option>
-                            {epiSelecionadoObj?.tamanhos.map((t) => (<option key={t} value={t}>{t}</option>))}
+                            {epiSelecionadoObj?.tamanhos.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
                         </select>
                     </div>
 
-                    {/* Qtd e Preço */}
-                    <div>
-                        <label className="text-xs text-slate-500 mb-1 block font-bold">Qtd.</label>
-                        <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-600 outline-none" 
-                            value={qtdTemp} onChange={(e) => setQtdTemp(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="text-xs text-slate-500 mb-1 block font-bold">R$ Unit.</label>
-                        <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-600 outline-none" 
-                            placeholder="0.00" value={precoTemp} onChange={(e) => setPrecoTemp(e.target.value)} />
+                    {/* Inputs Numéricos */}
+                    <div className="md:col-span-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1">Qtd.</label>
+                        <input 
+                            type="number" 
+                            min="1"
+                            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-600 outline-none text-sm"
+                            value={qtdTemp}
+                            onChange={(e) => setQtdTemp(e.target.value)}
+                        />
                     </div>
 
-                    {/* Botão Add */}
-                    <div>
-                        <button
+                    <div className="md:col-span-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1">Valor Unit. (R$)</label>
+                        <input 
+                            type="number" 
+                            step="0.01"
+                            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-600 outline-none text-sm"
+                            placeholder="0.00"
+                            value={precoTemp}
+                            onChange={(e) => setPrecoTemp(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Botão Adicionar */}
+                    <div className="md:col-span-2">
+                        <button 
                             onClick={adicionarItem}
-                            className="w-full px-3 py-2 bg-emerald-600 text-white font-bold rounded hover:bg-emerald-700 transition shadow-sm text-sm border border-emerald-800"
+                            className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded shadow-md transition flex items-center justify-center gap-1 text-sm"
                         >
-                            + Incluir
+                            <span>+</span> Incluir
                         </button>
                     </div>
+                    
+                    {/* Campo Extra Validade */}
+                    <div className="md:col-span-3 mt-2 md:mt-0">
+                         <label className="text-xs font-bold text-slate-400 uppercase mb-1">Validade (Lote)</label>
+                         <input 
+                            type="date" 
+                            className="w-full p-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-emerald-600 outline-none"
+                            value={validadeTemp}
+                            onChange={(e) => setValidadeTemp(e.target.value)}
+                         />
+                    </div>
                 </div>
-                
-                {/* Campo extra de validade */}
-                <div className="mt-3 w-1/3">
-                     <label className="text-xs text-slate-500 mb-1 block font-bold">Validade (Lote)</label>
-                     <input type="date" className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-600 outline-none"
-                        value={validadeTemp} onChange={(e) => setValidadeTemp(e.target.value)} />
-                </div>
-            </div>
 
-            {/* TABELA DE ITENS */}
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Itens na Nota ({itensEntrada.length})
-                </label>
-                
-                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-600 font-semibold">
-                            <tr>
-                                <th className="p-3 pl-4">Item</th>
-                                <th className="p-3">Tam.</th>
-                                <th className="p-3">Validade</th>
-                                <th className="p-3 text-right">Qtd.</th>
-                                <th className="p-3 text-right">Valor</th>
-                                <th className="p-3 text-right">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {itensEntrada.length === 0 ? (
-                                <tr><td colSpan="6" className="p-6 text-center text-slate-400 italic">Nenhum item lançado.</td></tr>
-                            ) : (
-                                itensEntrada.map((item) => (
-                                    <tr key={item.id}>
-                                        <td className="p-3 pl-4 text-slate-700 font-medium">{item.epiNome}</td>
-                                        <td className="p-3 text-slate-500">{item.tamanho}</td>
-                                        <td className="p-3 text-slate-500 text-xs">{item.validade}</td>
-                                        <td className="p-3 text-right font-bold text-slate-700">{item.quantidade}</td>
-                                        <td className="p-3 text-right text-emerald-600">R$ {item.preco}</td>
-                                        <td className="p-3 text-right">
-                                            <button onClick={() => removerItem(item.id)} className="text-red-500 hover:text-red-700 font-bold text-xs">
-                                                Excluir
-                                            </button>
+                {/* --- TABELA DE ITENS ADICIONADOS --- */}
+                <div className="mt-6">
+                    <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                <tr>
+                                    <th className="p-3">Item</th>
+                                    <th className="p-3 text-center">Tam</th>
+                                    <th className="p-3 text-center">Qtd</th>
+                                    <th className="p-3 text-right">Unitário</th>
+                                    <th className="p-3 text-right">Total</th>
+                                    <th className="p-3 text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {itensEntrada.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="p-8 text-center text-slate-400 italic bg-white">
+                                            Nenhum item adicionado à nota ainda.
                                         </td>
                                     </tr>
-                                ))
+                                ) : (
+                                    itensEntrada.map((item) => (
+                                        <tr key={item.id} className="hover:bg-slate-50 transition bg-white">
+                                            <td className="p-3">
+                                                <span className="font-medium text-slate-800">{item.epiNome}</span>
+                                                <span className="block text-xs text-slate-400">CA: {item.ca} | Val: {item.validade}</span>
+                                            </td>
+                                            <td className="p-3 text-center text-slate-600">{item.tamanho}</td>
+                                            <td className="p-3 text-center font-bold text-slate-700">{item.quantidade}</td>
+                                            <td className="p-3 text-right text-slate-600">
+                                                {item.preco.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
+                                            </td>
+                                            <td className="p-3 text-right font-bold text-emerald-600">
+                                                {item.totalItem.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
+                                            </td>
+                                            <td className="p-3 text-center">
+                                                <button 
+                                                    onClick={() => removerItem(item.id)}
+                                                    className="text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition"
+                                                    title="Remover item"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                            {/* RODAPÉ DA TABELA (TOTAIS) */}
+                            {itensEntrada.length > 0 && (
+                                <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                    <tr>
+                                        <td colSpan="4" className="p-3 text-right font-bold text-slate-600 uppercase text-xs tracking-wider">
+                                            Total da Nota Fiscal:
+                                        </td>
+                                        <td className="p-3 text-right font-black text-lg text-emerald-700">
+                                            {valorTotalNota.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
                             )}
-                        </tbody>
-                    </table>
+                        </table>
+                    </div>
                 </div>
             </div>
 
         </div>
 
-        {/* RODAPÉ */}
-        <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-200">
-          <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition">
-            Cancelar
-          </button>
-          <button onClick={salvarEntrada} className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition flex items-center gap-2">
-            <span>✅</span> Finalizar Entrada
-          </button>
+        {/* === RODAPÉ DO MODAL (AÇÕES) === */}
+        <div className="bg-white px-6 py-4 flex justify-between items-center border-t border-slate-200">
+            <div className="text-xs text-slate-400">
+                * Campos obrigatórios para controle de estoque
+            </div>
+            <div className="flex gap-3">
+                <button 
+                    onClick={onClose} 
+                    className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-lg transition"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    onClick={salvarEntrada} 
+                    className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition flex items-center gap-2 transform active:scale-95"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Finalizar Entrada
+                </button>
+            </div>
         </div>
 
       </div>
