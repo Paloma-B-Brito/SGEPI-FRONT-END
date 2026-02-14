@@ -3,10 +3,10 @@ import Login from "./pages/Login";
 import Header from "./components/Header";
 import Dashboard from "./pages/Dashboard";
 import Estoque from "./pages/Estoque";
-import Funcionarios from "./pages/Funcionarios"; 
+import Funcionarios from "./pages/Funcionários"; 
 import Entradas from "./pages/Entradas";
 import Entregas from "./pages/Entregas";
-import Devolucoes from "./pages/Devolucoes";
+import Devolucoes from "./pages/Devoluções";
 import Administracao from "./pages/Administracao";
 import Fornecedores from "./pages/Fornecedores"; 
 
