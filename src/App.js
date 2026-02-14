@@ -1,22 +1,19 @@
 import { useState } from "react";
-
-// Importando Componentes
 import Login from "./pages/Login";
 import Header from "./components/Header";
-
-// Importando Páginas
 import Dashboard from "./pages/Dashboard";
 import Estoque from "./pages/Estoque";
-import Funcionarios from "./pages/Funcionários"; 
+import Funcionarios from "./pages/Funcionarios"; 
 import Entradas from "./pages/Entradas";
 import Entregas from "./pages/Entregas";
-import Devolucoes from "./pages/Devoluções";
+import Devolucoes from "./pages/Devolucoes";
+import Administracao from "./pages/Administracao";
+import Fornecedores from "./pages/Fornecedores"; 
 
 function App() {
   const [logado, setLogado] = useState(false);
   const [pagina, setPagina] = useState("Dashboard");
 
-  // Se não estiver logado, exibe apenas o Login
   if (!logado) {
     return <Login onLogin={() => setLogado(true)} />;
   }
@@ -35,6 +32,10 @@ function App() {
         return <Entregas />;
       case "Devoluções":
         return <Devolucoes />;
+      case "Admin": 
+        return <Administracao />;
+      case "Fornecedores": 
+        return <Fornecedores />;
       default:
         return <Dashboard />;
     }
@@ -42,13 +43,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Header com Menu de Navegação */}
       <Header 
         paginaAtual={pagina} 
         setPagina={setPagina} 
         onLogout={() => setLogado(false)}
       />
 
-      {/* Conteúdo Principal */}
+      {/* Conteúdo Principal (Muda dinamicamente) */}
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 animate-fade-in">
         {renderizarPagina()}
       </main>
