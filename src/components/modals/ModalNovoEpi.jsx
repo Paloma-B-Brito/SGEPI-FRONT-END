@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-// MOCK DATA
-const tiposProtecao = [
+const categoriasDisponiveis = [
   { id: 1, nome: "Proteção da Cabeça (Capacetes/Toucas)" },
   { id: 2, nome: "Proteção Auditiva (Protetores/Abafadores)" },
   { id: 3, nome: "Proteção Respiratória (Máscaras/Filtros)" },
@@ -11,60 +10,52 @@ const tiposProtecao = [
   { id: 7, nome: "Proteção contra Quedas (Cintos)" },
 ];
 
-const tamanhosDisponiveis = [
-  "Único", "PP", "P", "M", "G", "GG", "XG",
-  "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45"
+const statusDisponiveis = [
+  { id: 1, nome: "Ativo / Em Estoque" },
+  { id: 2, nome: "Estoque Baixo" },
+  { id: 3, nome: "Esgotado" },
 ];
 
-function ModalNovoEpi({ onClose }) {
-  // FORM STATES
+function ModalNovoEpi({ onClose, onSalvar }) {
   const [nome, setNome] = useState("");
-  const [fabricante, setFabricante] = useState("");
-  const [ca, setCa] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [dataValidadeCa, setDataValidadeCa] = useState("");
-  const [protecao, setProtecao] = useState("");
-  const [alertaMinimo, setAlertaMinimo] = useState(10);
-  const [tamanhosSelecionados, setTamanhosSelecionados] = useState([]);
-
-  function toggleTamanho(tamanho) {
-    setTamanhosSelecionados((prev) => {
-      if (prev.includes(tamanho)) {
-        return prev.filter((t) => t !== tamanho);
-      } else {
-        return [...prev, tamanho];
-      }
-    });
-  }
+  const [preco, setPreco] = useState("");
+  const [lote, setLote] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [validade, setValidade] = useState("");
+  const [dataChegada, setDataChegada] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [status, setStatus] = useState("1"); 
 
   function salvarEpi() {
-    if (!nome || !fabricante || !ca || !protecao || tamanhosSelecionados.length === 0) {
-      alert("Por favor, preencha os campos obrigatórios (*) e selecione ao menos um tamanho.");
+    if (!nome || !quantidade || !categoria || !preco) {
+      alert("Por favor, preencha os campos obrigatórios (*).");
       return;
     }
-
-    const epi = {
-      id: Date.now(),
-      nome,
-      fabricante,
-      ca,
-      descricao,
-      data_validade_ca: dataValidadeCa,
-      id_protecao: Number(protecao),
-      alerta_minimo: Number(alertaMinimo),
-      tamanhos: tamanhosSelecionados,
+    const novoProduto = {
+      nome: nome,
+      descricao: descricao,
+      preco: parseFloat(preco),
+      lote: lote,
+      quantidade: parseInt(quantidade),
+      validade: validade,
+      status: parseInt(status),
+      categoria: parseInt(categoria),
+      dataChegada: dataChegada,
     };
 
-    console.log("Novo EPI Cadastrado com múltiplos tamanhos:", epi);
+    console.log("Pacote pronto para o Go:", novoProduto);
+    if(onSalvar) {
+        onSalvar(novoProduto);
+    }
+    
     onClose();
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-        
-        {/* CABEÇALHO */}
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-slate-200 p-2 rounded-lg text-slate-700">
                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,146 +63,129 @@ function ModalNovoEpi({ onClose }) {
               </svg>
             </span>
             <h2 className="text-xl font-bold text-slate-800">
-              Cadastrar Novo Item
+              Cadastrar Novo Produto (EPI)
             </h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 font-bold text-xl transition">✕</button>
         </div>
 
-        {/* FORMULÁRIO */}
         <div className="p-6 overflow-y-auto space-y-6">
-
-            {/* SEÇÃO 1: DADOS BÁSICOS */}
             <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Dados do Produto</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Identificação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome do EPI <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Produto <span className="text-red-500">*</span></label>
                         <input
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="Ex: Luva de Vaqueta ou Bota de Segurança"
+                            placeholder="Ex: Bota de Segurança de Couro"
                             value={nome}
                             onChange={(e) => setNome(e.target.value)}
                         />
                     </div>
                     
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fabricante <span className="text-red-500">*</span></label>
-                        <input
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Descrição (Tamanho, Fabricante, CA)</label>
+                        <textarea
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="Ex: 3M"
-                            value={fabricante}
-                            onChange={(e) => setFabricante(e.target.value)}
+                            rows="2"
+                            placeholder="Ex: Tamanho 42 | Fabricante: Bracol | CA: 15432"
+                            value={descricao}
+                            onChange={(e) => setDescricao(e.target.value)}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Proteção <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria <span className="text-red-500">*</span></label>
                         <select
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            value={protecao}
-                            onChange={(e) => setProtecao(e.target.value)}
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white"
+                            value={categoria}
+                            onChange={(e) => setCategoria(e.target.value)}
                         >
                             <option value="">Selecione...</option>
-                            {tiposProtecao.map((p) => (
-                                <option key={p.id} value={p.id}>{p.nome}</option>
+                            {categoriasDisponiveis.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                        >
+                            {statusDisponiveis.map((s) => (
+                                <option key={s.id} value={s.id}>{s.nome}</option>
                             ))}
                         </select>
                     </div>
                 </div>
             </div>
 
-            {/* SEÇÃO 2: DADOS TÉCNICOS */}
             <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Dados Técnicos (CA)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Controle e Valores</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Número do CA <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Lote</label>
                         <input
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="Ex: 12345"
-                            value={ca}
-                            onChange={(e) => setCa(e.target.value)}
+                            placeholder="Ex: LOTE-2026A"
+                            value={lote}
+                            onChange={(e) => setLote(e.target.value)}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Validade do CA</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade <span className="text-red-500">*</span></label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                            placeholder="0"
+                            value={quantidade}
+                            onChange={(e) => setQuantidade(e.target.value)}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Unit. (R$) <span className="text-red-500">*</span></label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                            placeholder="0.00"
+                            value={preco}
+                            onChange={(e) => setPreco(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="md:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Data de Chegada</label>
                         <input
                             type="date"
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            value={dataValidadeCa}
-                            onChange={(e) => setDataValidadeCa(e.target.value)}
+                            value={dataChegada}
+                            onChange={(e) => setDataChegada(e.target.value)}
                         />
                     </div>
 
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada</label>
-                        <textarea
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Validade do Produto / CA</label>
+                        <input
+                            type="date"
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            rows="2"
-                            placeholder="Detalhes técnicos, material, cor..."
-                            value={descricao}
-                            onChange={(e) => setDescricao(e.target.value)}
+                            value={validade}
+                            onChange={(e) => setValidade(e.target.value)}
                         />
                     </div>
                 </div>
             </div>
 
-            {/* SEÇÃO 3: ESTOQUE E VARIAÇÃO */}
-            <div>
-                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Configuração de Tamanhos</h3>
-                 
-                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tamanhos Disponíveis <span className="text-red-500">*</span>
-                    <span className="text-xs font-normal text-gray-500 ml-2">(Clique para selecionar múltiplos)</span>
-                 </label>
-                 
-                 <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
-                    {tamanhosDisponiveis.map((t) => {
-                        const isSelected = tamanhosSelecionados.includes(t);
-                        return (
-                            <button
-                                key={t}
-                                type="button"
-                                onClick={() => toggleTamanho(t)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-all ${
-                                    isSelected
-                                        ? "bg-slate-700 text-white border-slate-700 shadow-md transform scale-105 ring-2 ring-offset-1 ring-slate-300"
-                                        : "bg-white text-gray-500 border-gray-200 hover:border-slate-400 hover:text-slate-800"
-                                }`}
-                            >
-                                {t}
-                            </button>
-                        );
-                    })}
-                 </div>
-                 
-                 {tamanhosSelecionados.length > 0 && (
-                    <p className="text-xs text-green-600 font-semibold mb-4 animate-pulse">
-                        {tamanhosSelecionados.length} tamanho(s) selecionado(s): {tamanhosSelecionados.join(", ")}
-                    </p>
-                 )}
-
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Alerta de Estoque Mínimo (Geral)</label>
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="number"
-                            min="1"
-                            className="w-24 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            value={alertaMinimo}
-                            onChange={(e) => setAlertaMinimo(Number(e.target.value))}
-                        />
-                        <span className="text-sm text-gray-500">unidades por tamanho</span>
-                    </div>
-                 </div>
-            </div>
-
         </div>
 
-        {/* RODAPÉ */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
+        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition"
@@ -220,7 +194,7 @@ function ModalNovoEpi({ onClose }) {
           </button>
           <button
             onClick={salvarEpi}
-            className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 shadow-md transition flex items-center gap-2"
+            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition flex items-center gap-2"
           >
             <span>💾</span> Salvar Produto
           </button>
