@@ -6,27 +6,23 @@ import ModalEntrega from "../components/modals/ModalEntrega";
 import ModalBaixa from "../components/modals/ModalBaixa";
 import ModalBusca from "../components/modals/ModalBusca";
 
-function Dashboard() {
+function Dashboard({ usuarioLogado }) {
   const [modalAberto, setModalAberto] = useState(null);
-
-  // Função para fechar qualquer modal
   const fecharModal = () => setModalAberto(null);
+  const nomeExibicao = usuarioLogado?.role === "admin" ? "Administrador" : "Colaborador";
 
   return (
-    <div className="animate-fade-in pb-20 md:pb-0"> {/* Padding bottom no mobile para não colar no fim */}
-      
-      {/* 1. ÁREA DE BOAS-VINDAS */}
+    <div className="animate-fade-in pb-20 md:pb-0"> 
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
-            Olá, <span className="text-blue-600">Gestor</span> 👋
+            Olá, <span className="text-blue-600">{nomeExibicao}</span> 👋
           </h2>
           <p className="text-sm md:text-base text-gray-500 mt-1">
-            Aqui está o resumo do seu estoque hoje.
+            Aqui está o resumo do teu estoque hoje.
           </p>
         </div>
         
-        {/* Status só aparece em telas médias pra cima (Tablet/PC) */}
         <div className="hidden md:block text-right">
             <p className="text-xs font-bold text-gray-400 uppercase">Status do Sistema</p>
             <div className="flex items-center gap-2 justify-end">
@@ -36,11 +32,8 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* 2. CARDS DE RESUMO (KPIs) */}
-      {/* Mobile: 2 colunas (grid-cols-2) | PC: 4 colunas (md:grid-cols-4) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-10">
         
-        {/* Card 1 */}
         <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Total de Itens</h3>
@@ -50,7 +43,6 @@ function Dashboard() {
           <p className="text-[10px] md:text-xs text-green-600 mt-1 md:mt-2 font-medium">⬆ +12% mês</p>
         </div>
 
-        {/* Card 2 */}
         <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Entregas Hoje</h3>
@@ -60,7 +52,6 @@ function Dashboard() {
           <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">Atendimentos</p>
         </div>
 
-        {/* Card 3 */}
         <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Alertas</h3>
@@ -70,7 +61,6 @@ function Dashboard() {
           <p className="text-[10px] md:text-xs text-orange-600 mt-1 md:mt-2 font-bold">Estoque baixo</p>
         </div>
 
-         {/* Card 4 */}
          <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">Valor Total</h3>
@@ -82,15 +72,12 @@ function Dashboard() {
 
       </div>
 
-      {/* 3. AÇÕES RÁPIDAS */}
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
         ⚡ Ações Rápidas
       </h3>
 
-      {/* Grid responsivo: 1 coluna no mobile, 2 no tablet, 3 no PC */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
-        {/* Botão 1: Cadastrar */}
         <button
           onClick={() => setModalAberto("novo-epi")}
           className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
@@ -104,7 +91,6 @@ function Dashboard() {
           </div>
         </button>
 
-        {/* Botão 2: Entrada */}
         <button
           onClick={() => setModalAberto("entrada")}
           className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
@@ -118,7 +104,6 @@ function Dashboard() {
           </div>
         </button>
 
-        {/* Botão 3: Entrega */}
         <button
           onClick={() => setModalAberto("entrega")}
           className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
@@ -132,7 +117,6 @@ function Dashboard() {
           </div>
         </button>
 
-        {/* Botão 4: Baixa */}
         <button
           onClick={() => setModalAberto("baixa")}
           className="group flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
@@ -146,7 +130,6 @@ function Dashboard() {
           </div>
         </button>
 
-        {/* Botão 5: Buscar (Adapta-se para ocupar 2 colunas no tablet/PC, mas 1 no mobile) */}
         <button
           onClick={() => setModalAberto("busca")}
           className="sm:col-span-2 lg:col-span-2 group flex items-center justify-center gap-3 p-4 md:p-5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300"
@@ -159,8 +142,6 @@ function Dashboard() {
         </button>
 
       </div>
-
-      {/* MODAIS */}
       {modalAberto === "novo-epi" && <ModalNovoEpi onClose={fecharModal} />}
       {modalAberto === "entrada" && <ModalEntrada onClose={fecharModal} />}
       {modalAberto === "entrega" && <ModalEntrega onClose={fecharModal} />}
