@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+// listas de opções (mockadas até o backend ter rotas para elas)
 const categoriasDisponiveis = [
   { id: 1, nome: "Proteção da Cabeça (Capacetes/Toucas)" },
   { id: 2, nome: "Proteção Auditiva (Protetores/Abafadores)" },
@@ -17,6 +18,7 @@ const statusDisponiveis = [
 ];
 
 function ModalNovoEpi({ onClose, onSalvar }) {
+  // meus estados do formulário
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [preco, setPreco] = useState("");
@@ -25,36 +27,64 @@ function ModalNovoEpi({ onClose, onSalvar }) {
   const [validade, setValidade] = useState("");
   const [dataChegada, setDataChegada] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [status, setStatus] = useState("1"); 
+  const [status, setStatus] = useState("1");
+  const [carregando, setCarregando] = useState(false);
 
-  function salvarEpi() {
+  // função para salvar os dados no banco
+  const salvarEpi = async () => {
+    // validação básica
     if (!nome || !quantidade || !categoria || !preco) {
-      alert("Por favor, preencha os campos obrigatórios (*).");
+      alert("Por favor, preenche os campos obrigatórios (*).");
       return;
     }
+
+    setCarregando(true);
+
+    // montando o pacote de dados igual ao backend (DTO)
+    // o Go exige formato de data com hora (RFC3339), por isso adiciono o T00:00:00Z
     const novoProduto = {
       nome: nome,
       descricao: descricao,
       preco: parseFloat(preco),
       lote: lote,
       quantidade: parseInt(quantidade),
-      validade: validade,
+      validade: validade ? `${validade}T00:00:00Z` : null,
       status: parseInt(status),
       categoria: parseInt(categoria),
-      dataChegada: dataChegada,
+      dataChegada: dataChegada ? `${dataChegada}T00:00:00Z` : new Date().toISOString(),
     };
 
-    console.log("Pacote pronto para o Go:", novoProduto);
-    if(onSalvar) {
-        onSalvar(novoProduto);
-    }
-    
-    onClose();
-  }
+    try {
+      // enviando para a rota de criação (POST)
+      const resposta = await fetch("http://localhost:8080/api/produto", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(novoProduto),
+      });
 
+      if (resposta.ok) {
+        alert("Produto guardado com sucesso no banco de dados!");
+        if (onSalvar) onSalvar(); 
+        onClose();
+      } else {
+        alert("Erro ao guardar o produto. Verifica os dados e tenta novamente.");
+      }
+    } catch (erro) {
+      console.error("Erro na requisição:", erro);
+      alert("Não foi possível conectar ao servidor. Verifica se o backend está a correr.");
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // estrutura do modal
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+        
+        {/* cabeçalho */}
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-slate-200 p-2 rounded-lg text-slate-700">
@@ -69,7 +99,10 @@ function ModalNovoEpi({ onClose, onSalvar }) {
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 font-bold text-xl transition">✕</button>
         </div>
 
+        {/* formulário */}
         <div className="p-6 overflow-y-auto space-y-6">
+
+            {/* identificação */}
             <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Identificação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -123,6 +156,7 @@ function ModalNovoEpi({ onClose, onSalvar }) {
                 </div>
             </div>
 
+            {/* controle e logística */}
             <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Controle e Valores</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -149,7 +183,7 @@ function ModalNovoEpi({ onClose, onSalvar }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Unit. (R$) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Unit. (€) <span className="text-red-500">*</span></label>
                         <input
                             type="number"
                             step="0.01"
@@ -185,18 +219,22 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
         </div>
 
+        {/* rodapé e botões */}
         <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t shrink-0">
           <button
             onClick={onClose}
+            disabled={carregando}
             className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition"
           >
             Cancelar
           </button>
           <button
             onClick={salvarEpi}
-            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition flex items-center gap-2"
+            disabled={carregando}
+            className={`px-6 py-2 text-white font-bold rounded-lg shadow-md transition flex items-center gap-2 ${carregando ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
-            <span>💾</span> Salvar Produto
+            <span>{carregando ? "⏳" : "💾"}</span> 
+            {carregando ? "A guardar..." : "Salvar Produto"}
           </button>
         </div>
 
