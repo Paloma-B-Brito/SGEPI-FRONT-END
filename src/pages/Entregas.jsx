@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ModalEntrega from "../components/modals/ModalEntrega";
 
+// os meus mocks provisórios (até o Go ter as tabelas de funcionários e entregas)
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", setor: "Produção", matricula: "483920", cargo: "Operador" },
   { id: 2, nome: "Maria Santos", setor: "Segurança", matricula: "739104", cargo: "Técnica" },
@@ -20,23 +21,57 @@ const mockEntregasInicial = [
 ];
 
 function Entregas() {
+  // os meus estados da tela
   const [entregas, setEntregas] = useState(mockEntregasInicial);
   const [modalAberto, setModalAberto] = useState(false);
   
+  // os meus filtros de busca
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
+  // a minha paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
 
+  // puxar dados do banco de dados (preparado para o Go)
+  const carregarEntregas = async () => {
+    try {
+      // TODO: alterar a url quando o backend de entregas existir
+      const resposta = await fetch("http://localhost:8080/api/entregas");
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setEntregas(dados);
+      }
+    } catch (erro) {
+      console.log("Backend não tem entregas ainda. A usar dados falsos (mock).");
+    }
+  };
+
+  useEffect(() => {
+    carregarEntregas();
+  }, []);
+
+  // formatar a data visualmente
   const formatarData = (data) => {
     if (!data) return "--";
-    const [ano, mes, dia] = data.split("-");
+    const [ano, mes, dia] = data.substring(0, 10).split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // --- LÓGICA DE FILTRO ---
+  // atualizar os filtros e voltar para a primeira página
+  const aoMudarFiltro = (setter, valor) => {
+      setter(valor);
+      setPaginaAtual(1);
+  };
+
+  // adicionar a entrega que veio do modal à lista
+  const receberNovaEntrega = (novaEntrega) => {
+      setEntregas((prev) => [novaEntrega, ...prev]);
+      setPaginaAtual(1);
+  };
+
+  // filtrar e ordenar a minha lista
   const entregasFiltradas = entregas.filter((entrega) => {
     const func = mockFuncionarios.find(f => f.id === entrega.funcionario);
     if (!func) return false; 
@@ -51,30 +86,18 @@ function Entregas() {
     return matchTexto && matchData;
   });
 
-  // --- LÓGICA DE ORDENAÇÃO (NOVA) ---
   const entregasOrdenadas = [...entregasFiltradas].sort((a, b) => {
-    if (a.dataEntrega > b.dataEntrega) return -1; // Vem antes
-    if (a.dataEntrega < b.dataEntrega) return 1;  // Vem depois
+    if (a.dataEntrega > b.dataEntrega) return -1; // mais recentes primeiro
+    if (a.dataEntrega < b.dataEntrega) return 1;
     return 0;
   });
 
-  // --- LÓGICA DE PAGINAÇÃO---
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const entregasVisiveis = entregasOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(entregasOrdenadas.length / itensPorPagina);
 
-  const aoMudarFiltro = (setter, valor) => {
-      setter(valor);
-      setPaginaAtual(1);
-  };
-
-  const receberNovaEntrega = (novaEntrega) => {
-      setEntregas((prev) => [novaEntrega, ...prev]);
-      setPaginaAtual(1);
-  };
-
-  // --- GERADOR DE RELATÓRIO PDF ---
+  // a minha função para imprimir o relatório em PDF (mantida intacta)
   const imprimirRelatorioGeral = () => {
     const periodoTexto = dataInicio && dataFim 
         ? `${formatarData(dataInicio)} até ${formatarData(dataFim)}`
@@ -82,7 +105,6 @@ function Entregas() {
     
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
 
-    // O relatório imprimirá na ordem que está na tela (Ordenada)
     const conteudoHTML = `
       <html>
         <head>
@@ -143,10 +165,11 @@ function Entregas() {
     win.document.close();
   };
 
+  // o visual da minha página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
 
-      {/* CABEÇALHO */}
+      {/* cabeçalho da página */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">📋 Histórico de Entregas</h2>
@@ -160,7 +183,7 @@ function Entregas() {
         </button>
       </div>
 
-      {/* --- ÁREA DE FILTROS --- */}
+      {/* área de filtros */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
         <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">Filtros do Relatório</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -204,7 +227,7 @@ function Entregas() {
         </div>
       </div>
 
-      {/* --- MODO DESKTOP (Tabela) --- */}
+      {/* tabela de entregas (desktop) */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
@@ -252,15 +275,13 @@ function Entregas() {
         </table>
       </div>
 
-      {/* --- MODO MOBILE/TABLET (Cards) --- */}
+      {/* visualização em cards (mobile/tablet) */}
       <div className="lg:hidden space-y-4">
         {entregasVisiveis.length > 0 ? (
           entregasVisiveis.map((e) => {
             const func = mockFuncionarios.find(f => f.id === e.funcionario);
             return (
               <div key={e.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
-                
-                {/* Cabeçalho do Card */}
                 <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
@@ -279,7 +300,6 @@ function Entregas() {
                     <span className="text-xs text-gray-500 block">Matrícula: {func?.matricula || "--"}</span>
                 </div>
 
-                {/* Lista de Itens */}
                 <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <span className="text-[10px] text-gray-400 font-bold uppercase block mb-2">Itens Entregues</span>
                     <div className="flex flex-wrap gap-2">
@@ -300,7 +320,7 @@ function Entregas() {
         )}
       </div>
 
-      {/* PAGINAÇÃO */}
+      {/* controle de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -323,7 +343,7 @@ function Entregas() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* renderiza o modal se estiver aberto */}
       {modalAberto && (
         <ModalEntrega 
             onClose={() => setModalAberto(false)} 

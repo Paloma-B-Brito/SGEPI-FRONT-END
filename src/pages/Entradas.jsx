@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
+// os meus mocks provisórios (até o Go ter as tabelas necessárias)
 const mockUsuarios = [
   { id: 1, nome: "Maria Santos (Almoxarifado)" },
   { id: 2, nome: "João Silva (Supervisor)" },
@@ -17,19 +18,19 @@ const mockEntradasInicial = [
   { id: 101, dataEntrada: "2024-01-15", responsavel: 1, epi: 1, tamanho: "M", quantidade: 50, fornecedor: "3M do Brasil", lote: "L-2024-A", valorUnitario: 45.90 },
   { id: 102, dataEntrada: "2024-01-18", responsavel: 2, epi: 3, tamanho: "42", quantidade: 20, fornecedor: "Bracol", lote: "L-998-B", valorUnitario: 120.00 },
   { id: 103, dataEntrada: "2024-02-01", responsavel: 1, epi: 2, tamanho: "G", quantidade: 100, fornecedor: "Volk", lote: "L-555-C", valorUnitario: 12.50 },
-  { id: 104, dataEntrada: "2024-02-05", responsavel: 3, epi: 4, tamanho: "Único", quantidade: 30, fornecedor: "Kalipso", lote: "L-112-D", valorUnitario: 15.00 },
-  { id: 105, dataEntrada: "2024-02-10", responsavel: 1, epi: 1, tamanho: "P", quantidade: 10, fornecedor: "3M do Brasil", lote: "L-2024-E", valorUnitario: 45.90 },
-  { id: 106, dataEntrada: "2024-02-12", responsavel: 2, epi: 3, tamanho: "40", quantidade: 5, fornecedor: "Bracol", lote: "L-999-F", valorUnitario: 120.00 },
 ];
 
 function Entradas() {
+  // os meus estados principais da tela
   const [entradas, setEntradas] = useState(mockEntradasInicial);
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
 
+  // a minha paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
 
+  // os meus estados do formulário do modal
   const [responsavel, setResponsavel] = useState("");
   const [epi, setEpi] = useState("");
   const [tamanho, setTamanho] = useState("");
@@ -38,7 +39,27 @@ function Entradas() {
   const [lote, setLote] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [valorUnitario, setValorUnitario] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
+  // puxar dados do banco de dados (preparado para o Go)
+  const carregarEntradas = async () => {
+    try {
+      // TODO: alterar a url quando o backend de entradas existir
+      const resposta = await fetch("http://localhost:8080/api/entradas");
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setEntradas(dados);
+      }
+    } catch (erro) {
+      console.log("Backend não tem entradas ainda. A usar dados falsos (mock).");
+    }
+  };
+
+  useEffect(() => {
+    carregarEntradas();
+  }, []);
+
+  // formatar os dados visuais na tabela
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.split("-");
@@ -50,7 +71,7 @@ function Entradas() {
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
-  // --- LÓGICA DE FILTRAGEM ---
+  // as minhas lógicas de filtro e ordenação
   const entradasFiltradas = entradas.filter((e) => {
     const termo = busca.toLowerCase();
     const nomeEpi = mockEpis.find(item => item.id === e.epi)?.nome.toLowerCase() || "";
@@ -60,14 +81,13 @@ function Entradas() {
     return nomeEpi.includes(termo) || nomeFornecedor.includes(termo) || numeroLote.includes(termo);
   });
 
-  // --- LÓGICA DE ORDENAÇÃO ---
   const entradasOrdenadas = [...entradasFiltradas].sort((a, b) => {
     if (a.dataEntrada < b.dataEntrada) return 1;
     if (a.dataEntrada > b.dataEntrada) return -1;
     return 0;
   });
 
-  // --- PAGINAÇÃO---
+  // fatiar a lista para a paginação
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const entradasVisiveis = entradasOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
@@ -75,6 +95,7 @@ function Entradas() {
 
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epi));
 
+  // abrir o meu modal e limpar o formulário
   function abrirModal() {
     setResponsavel(""); setEpi(""); setTamanho("");
     setQuantidade(""); setDataEntrada(new Date().toISOString().split('T')[0]);
@@ -82,14 +103,16 @@ function Entradas() {
     setModalAberto(true);
   }
 
-  function salvarEntrada() {
+  // salvar a entrada no banco de dados (com a rota preparada)
+  const salvarEntrada = async () => {
     if (!responsavel || !epi || !quantidade || !dataEntrada) {
-      alert("Preencha os campos obrigatórios!");
+      alert("Preenche os campos obrigatórios!");
       return;
     }
 
-    const novaEntrada = {
-      id: Date.now(),
+    setCarregando(true);
+
+    const pacoteDados = {
       responsavel: Number(responsavel),
       epi: Number(epi),
       tamanho,
@@ -100,15 +123,34 @@ function Entradas() {
       valorUnitario: Number(valorUnitario),
     };
 
-    setEntradas((prev) => [novaEntrada, ...prev]); 
-    setModalAberto(false);
-    setPaginaAtual(1);
+    try {
+      // TODO: ativar este fetch quando o Go tiver a rota de POST /api/entrada
+      /*
+      const resposta = await fetch("http://localhost:8080/api/entrada", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pacoteDados)
+      });
+      if (!resposta.ok) throw new Error("Erro no backend");
+      */
+
+      // simulação local enquanto não há backend:
+      const novaEntrada = { id: Date.now(), ...pacoteDados };
+      setEntradas((prev) => [novaEntrada, ...prev]); 
+      setModalAberto(false);
+      setPaginaAtual(1);
+    } catch (erro) {
+      alert("Erro ao guardar o registo. Verifica a conexão com o servidor.");
+    } finally {
+      setCarregando(false);
+    }
   }
 
+  // o visual da minha página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
       
-      {/* CABEÇALHO */}
+      {/* cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -125,7 +167,7 @@ function Entradas() {
         </button>
       </div>
 
-      {/* BARRA DE BUSCA */}
+      {/* barra de busca */}
       <div className="relative mb-6">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
         <input
@@ -140,7 +182,7 @@ function Entradas() {
         />
       </div>
 
-      {/* --- MODO DESKTOP (Tabela) --- */}
+      {/* tabela para telas grandes */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -188,7 +230,7 @@ function Entradas() {
         </table>
       </div>
 
-      {/* --- MODO MOBILE/TABLET*/}
+      {/* cards para telemóveis e tablets */}
       <div className="lg:hidden space-y-4">
         {entradasVisiveis.length > 0 ? (
           entradasVisiveis.map((e) => {
@@ -198,7 +240,6 @@ function Entradas() {
             return (
               <div key={e.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
                 
-                {/* Data e Quantidade no topo */}
                 <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                         {formatarData(e.dataEntrada)}
@@ -211,7 +252,6 @@ function Entradas() {
                 <h3 className="font-bold text-gray-800 text-lg mb-1">{nomeEpi}</h3>
                 <p className="text-sm text-gray-600 mb-3">Tamanho: <strong className="text-gray-800">{e.tamanho || "Único"}</strong></p>
 
-                {/* Grid de Detalhes */}
                 <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
                     <div>
                         <span className="block text-[10px] text-gray-400 font-bold uppercase">Fornecedor</span>
@@ -233,7 +273,7 @@ function Entradas() {
         )}
       </div>
 
-      {/* PAGINAÇÃO */}
+      {/* controlo de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -258,14 +298,14 @@ function Entradas() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* o meu modal de registo de entrada */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
             
             <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center shrink-0">
               <h3 className="text-lg font-bold text-gray-800">📦 Nova Entrada</h3>
-              <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
@@ -322,8 +362,10 @@ function Entradas() {
             </div>
 
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t shrink-0">
-              <button onClick={() => setModalAberto(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition">Cancelar</button>
-              <button onClick={salvarEntrada} className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition">Registrar</button>
+              <button onClick={() => setModalAberto(false)} disabled={carregando} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+              <button onClick={salvarEntrada} disabled={carregando} className={`px-4 py-2 text-white font-bold rounded-lg shadow-md transition ${carregando ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                  {carregando ? "A registar..." : "Registrar"}
+              </button>
             </div>
 
           </div>
