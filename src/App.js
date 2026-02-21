@@ -11,14 +11,26 @@ import Administracao from "./pages/Administracao";
 import Fornecedores from "./pages/Fornecedores"; 
 
 function App() {
-  const [logado, setLogado] = useState(false);
+  const [usuario, setUsuario] = useState(null);
   const [pagina, setPagina] = useState("Dashboard");
 
-  if (!logado) {
-    return <Login onLogin={() => setLogado(true)} />;
+  if (!usuario) {
+    return (
+      <Login 
+        onLogin={(dadosUsuario) => {
+          setUsuario(dadosUsuario); 
+          setPagina("Dashboard");   
+        }} 
+      />
+    );
   }
 
   function renderizarPagina() {
+    const paginasRestritas = ["Admin", "Fornecedores"];
+    if (paginasRestritas.includes(pagina) && usuario.role !== "admin") {
+      return <Dashboard />; 
+    }
+
     switch (pagina) {
       case "Dashboard":
         return <Dashboard />;
@@ -36,6 +48,7 @@ function App() {
         return <Administracao />;
       case "Fornecedores": 
         return <Fornecedores />;
+        
       default:
         return <Dashboard />;
     }
@@ -43,14 +56,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Header com Menu de Navegação */}
+
       <Header 
         paginaAtual={pagina} 
         setPagina={setPagina} 
-        onLogout={() => setLogado(false)}
+        usuario={usuario} 
+        onLogout={() => setUsuario(null)}
       />
 
-      {/* Conteúdo Principal (Muda dinamicamente) */}
+      {/* Conteúdo Principal */}
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 animate-fade-in">
         {renderizarPagina()}
       </main>

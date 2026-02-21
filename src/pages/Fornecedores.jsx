@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-// --- DADOS MOCKADOS (Base de dados inicial) ---
 const mockFornecedoresInicial = [
   { id: 1, nome: "3M do Brasil Ltda", cnpj: "45.985.371/0001-08", contato: "vendas@3m.com", telefone: "(19) 3838-7000", cidade: "Sumaré - SP" },
   { id: 2, nome: "Bracol Calçados de Segurança", cnpj: "12.345.678/0001-90", contato: "comercial@bracol.com.br", telefone: "(14) 3404-1000", cidade: "Lins - SP" },
@@ -9,6 +8,37 @@ const mockFornecedoresInicial = [
   { id: 5, nome: "Promat Indústria", cnpj: "55.666.777/0001-99", contato: "vendas@promat.com", telefone: "(31) 3333-4444", cidade: "Betim - MG" },
   { id: 6, nome: "Kalipso Equipamentos", cnpj: "22.888.999/0001-55", contato: "vendas@kalipso.com.br", telefone: "(11) 4000-5000", cidade: "São Paulo - SP" },
 ];
+
+const validarCNPJ = (cnpj) => {
+  cnpj = cnpj.replace(/[^\d]+/g, '');
+  if (cnpj === '' || cnpj.length !== 14) return false;
+  if (/^(\d)\1+$/.test(cnpj)) return false;
+  let tamanho = cnpj.length - 2;
+  let numeros = cnpj.substring(0, tamanho);
+  let digitos = cnpj.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
+  
+  for (let i = tamanho; i >= 1; i--) {
+    soma += numeros.charAt(tamanho - i) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado != digitos.charAt(0)) return false;
+
+  tamanho = tamanho + 1;
+  numeros = cnpj.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += numeros.charAt(tamanho - i) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado != digitos.charAt(1)) return false;
+
+  return true;
+};
 
 function Fornecedores() {
   const [fornecedores, setFornecedores] = useState(mockFornecedoresInicial);
@@ -26,15 +56,12 @@ function Fornecedores() {
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
     f.cnpj.includes(busca)
   );
-  const listaOrdenada = [...listaFiltrada].sort((a, b) => a.nome.localeCompare(b.nome));
 
-  // --- PAGINAÇÃO ---
+  const listaOrdenada = [...listaFiltrada].sort((a, b) => a.nome.localeCompare(b.nome));
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const fornecedoresVisiveis = listaOrdenada.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(listaOrdenada.length / itensPorPagina);
-
-  // --- HELPERS (Formatação) ---
   const formatarCNPJ = (valor) => {
     return valor
       .replace(/\D/g, '')
@@ -79,6 +106,11 @@ function Fornecedores() {
       return;
     }
 
+    if (!validarCNPJ(formCnpj)) {
+      alert("⚠️ CNPJ Inválido! Por favor, verifique os números digitados.");
+      return; 
+    }
+
     if (fornSelecionado) {
       setFornecedores((prev) => prev.map((f) => 
         f.id === fornSelecionado.id 
@@ -95,7 +127,7 @@ function Fornecedores() {
         cidade: formCidade
       };
       setFornecedores((prev) => [novoItem, ...prev]);
-      setPaginaAtual(1);
+      setPaginaAtual(1); 
     }
     setModalAberto(false);
   }
