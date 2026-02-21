@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ModalBaixa from "../components/modals/ModalBaixa";
 
+// os meus mocks provisórios (até o Go ter as tabelas necessárias)
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", setor: "Produção", matricula: "483920" },
   { id: 2, nome: "Maria Santos", setor: "Segurança", matricula: "739104" },
@@ -22,20 +23,41 @@ const mockDevolucoesInicial = [
 ];
 
 function Devolucoes() {
+  // os meus estados da tela
   const [devolucoes, setDevolucoes] = useState(mockDevolucoesInicial);
   const [modalAberto, setModalAberto] = useState(false);
   
+  // filtros e paginação
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
 
+  // puxar as devoluções do banco de dados (preparado para a rota futura)
+  const carregarDevolucoes = async () => {
+    try {
+      // TODO: alterar a url quando o backend de devoluções existir
+      const resposta = await fetch("http://localhost:8080/api/devolucoes");
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setDevolucoes(dados);
+      }
+    } catch (erro) {
+      console.log("Backend não tem devoluções ainda. A usar dados falsos (mock).");
+    }
+  };
+
+  useEffect(() => {
+    carregarDevolucoes();
+  }, []);
+
+  // formatar a data visualmente
   const formatarData = (data) => {
     if (!data) return "--";
-    const [ano, mes, dia] = data.split("-");
+    const [ano, mes, dia] = data.substring(0, 10).split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // --- LÓGICA DE FILTRO ---
+  // a minha lógica de filtro e pesquisa
   const devolucoesFiltradas = devolucoes.filter((d) => {
     const func = mockFuncionarios.find(f => f.id === d.funcionario);
     const termo = busca.toLowerCase();
@@ -46,21 +68,26 @@ function Devolucoes() {
     return matchFuncionario || matchMotivo;
   });
 
-  // --- LÓGICA DE ORDENAÇÃO ---
+  // a minha lógica de ordenação (mais recentes primeiro)
   const devolucoesOrdenadas = [...devolucoesFiltradas].sort((a, b) => {
-    // Compara datas strings "YYYY-MM-DD"
-    // Se b > a, b vem primeiro (decrescente)
     if (a.data < b.data) return 1;
     if (a.data > b.data) return -1;
     return 0;
   });
 
-  // --- PAGINAÇÃO --
+  // a minha paginação
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const devolucoesVisiveis = devolucoesOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(devolucoesOrdenadas.length / itensPorPagina);
 
+  // adicionar uma devolução que veio do modal
+  const receberNovaDevolucao = (novaDevolucao) => {
+    setDevolucoes((prev) => [novaDevolucao, ...prev]);
+    setPaginaAtual(1);
+  };
+
+  // a minha função para imprimir o relatório em PDF (CORRIGIDA)
   const imprimirRelatorioDevolucoes = () => {
     const conteudo = `
       <html>
@@ -71,19 +98,15 @@ function Devolucoes() {
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #b91c1c; padding-bottom: 20px; margin-bottom: 30px; }
             .header h1 { margin: 0; color: #b91c1c; font-size: 24px; text-transform: uppercase; }
             .header .meta { text-align: right; font-size: 12px; color: #666; }
-            
             table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
             th { background-color: #f3f4f6; color: #1f2937; text-align: left; padding: 12px; border-bottom: 2px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
             td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; vertical-align: middle; }
             tr:nth-child(even) { background-color: #f9fafb; }
-            
             .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
             .badge-sim { background-color: #dcfce7; color: #166534; }
             .badge-nao { background-color: #f3f4f6; color: #4b5563; }
-            
             .footer { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
             .assinatura-box { width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 10px; font-size: 12px; margin-top: 40px; }
-            
             @media print {
               .no-print { display: none; }
               body { -webkit-print-color-adjust: exact; }
@@ -101,7 +124,6 @@ function Devolucoes() {
               <p>Total de Registros: ${devolucoesOrdenadas.length}</p>
             </div>
           </div>
-
           <table>
             <thead>
               <tr>
@@ -131,19 +153,11 @@ function Devolucoes() {
               }).join('')}
             </tbody>
           </table>
-
           <div class="footer">
-            <div class="assinatura-box">
-              Responsável pelo Almoxarifado
-            </div>
-            <div class="assinatura-box">
-              Técnico de Segurança do Trabalho
-            </div>
+            <div class="assinatura-box">Responsável pelo Almoxarifado</div>
+            <div class="assinatura-box">Técnico de Segurança do Trabalho</div>
           </div>
-          
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
+          <script>window.onload = function() { window.print(); }</script>
         </body>
       </html>
     `;
@@ -153,10 +167,11 @@ function Devolucoes() {
     win.document.close();
   };
 
+  // o visual da minha página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
       
-      {/* CABEÇALHO */}
+      {/* cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -181,7 +196,7 @@ function Devolucoes() {
         </div>
       </div>
 
-      {/* BARRA DE BUSCA */}
+      {/* barra de busca */}
       <div className="relative mb-6">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
         <input
@@ -196,7 +211,7 @@ function Devolucoes() {
         />
       </div>
 
-      {/* --- MODO DESKTOP (Tabela) --- */}
+      {/* tabela para telas grandes */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -213,7 +228,7 @@ function Devolucoes() {
             {devolucoesVisiveis.length === 0 ? (
               <tr>
                 <td colSpan="6" className="p-8 text-center text-gray-500">
-                  Nenhuma devolução encontrada.
+                  Nenhuma devolução encontrada no banco de dados.
                 </td>
               </tr>
             ) : (
@@ -265,7 +280,7 @@ function Devolucoes() {
         </table>
       </div>
 
-      {/* --- MODO MOBILE/TABLET (Cards) --- */}
+      {/* cards para telemóveis e tablets */}
       <div className="lg:hidden space-y-4">
         {devolucoesVisiveis.length > 0 ? (
           devolucoesVisiveis.map((d) => {
@@ -275,7 +290,6 @@ function Devolucoes() {
             return (
               <div key={d.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
                 
-                {/* Cabeçalho do Card */}
                 <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
@@ -294,7 +308,6 @@ function Devolucoes() {
                     <span className="text-xs text-gray-500 block">Matrícula: {func?.matricula || "--"}</span>
                 </div>
 
-                {/* Detalhes do Item e Motivo */}
                 <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-500">Item:</span>
@@ -315,7 +328,7 @@ function Devolucoes() {
         )}
       </div>
 
-      {/* BARRA DE PAGINAÇÃO */}
+      {/* controlo de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -340,9 +353,11 @@ function Devolucoes() {
         </div>
       )}
 
+      {/* o meu modal de registo de baixa */}
       {modalAberto && (
         <ModalBaixa 
             onClose={() => setModalAberto(false)} 
+            onSalvar={receberNovaDevolucao}
         />
       )}
 
