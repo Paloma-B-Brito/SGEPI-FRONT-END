@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { api } from "../services/api";
 
-// os meus dados iniciais para testes (mocks)
 const mockDepartamentosInicial = [
   { id: 1, nome: "Produção", cor: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: 2, nome: "Logística", cor: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -14,26 +14,36 @@ const mockCargosInicial = [
 ];
 
 function Administracao() {
-  // os meus controles de navegação e dados
   const [abaAtiva, setAbaAtiva] = useState("fornecedores");
   const [fornecedores, setFornecedores] = useState([]);
-  const [departamentos, setDepartamentos] = useState(mockDepartamentosInicial);
-  const [cargos, setCargos] = useState(mockCargosInicial);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [cargos, setCargos] = useState([]);
   const [carregando, setCarregando] = useState(false);
 
-  // os meus estados para novos cadastros
   const [novoForn, setNovoForn] = useState({ nome: "", cnpj: "", contato: "" });
   const [novoDepto, setNovoDepto] = useState("");
   const [novoCargo, setNovoCargo] = useState({ nome: "", idDepto: "" });
 
-  // puxar as tabelas auxiliares do backend (preparado para o Go)
   const carregarDadosAdm = async () => {
     try {
-      // TODO: fazer o fetch para cada categoria quando o backend estiver pronto
-      // const resForn = await fetch("http://localhost:8080/api/fornecedores");
-      // setFornecedores(await resForn.json());
+      const resForn = await api.get("/fornecedores");
+      setFornecedores(resForn);
     } catch (erro) {
-      console.log("Backend adm em desenvolvimento. A usar mocks.");
+      setFornecedores([]);
+    }
+
+    try {
+      const resDept = await api.get("/departamentos");
+      setDepartamentos(resDept);
+    } catch (erro) {
+      setDepartamentos(mockDepartamentosInicial);
+    }
+
+    try {
+      const resCargos = await api.get("/cargos");
+      setCargos(resCargos);
+    } catch (erro) {
+      setCargos(mockCargosInicial);
     }
   };
 
@@ -41,13 +51,16 @@ function Administracao() {
     carregarDadosAdm();
   }, []);
 
-  // funções para salvar novos itens (com simulação local e rota preparada)
   const adicionarFornecedor = async () => {
-    if (!novoForn.nome || !novoForn.cnpj) return alert("Preenche Nome e CNPJ!");
+    if (!novoForn.nome || !novoForn.cnpj) return alert("Preencha Nome e CNPJ!");
     setCarregando(true);
     
     try {
-      // TODO: fetch POST /api/fornecedor
+      await api.post("/fornecedor", novoForn);
+      const item = { id: Date.now(), ...novoForn };
+      setFornecedores([item, ...fornecedores]);
+      setNovoForn({ nome: "", cnpj: "", contato: "" });
+    } catch (erro) {
       const item = { id: Date.now(), ...novoForn };
       setFornecedores([item, ...fornecedores]);
       setNovoForn({ nome: "", cnpj: "", contato: "" });
@@ -57,12 +70,18 @@ function Administracao() {
   };
 
   const adicionarDepartamento = async () => {
-    if (!novoDepto) return alert("Digita o nome do departamento!");
+    if (!novoDepto) return alert("Digite o nome do departamento!");
     setCarregando(true);
     
+    const payload = { nome: novoDepto, cor: "bg-gray-100 text-gray-700 border-gray-200" };
+
     try {
-      // TODO: fetch POST /api/departamento
-      const item = { id: Date.now(), nome: novoDepto, cor: "bg-gray-100 text-gray-700 border-gray-200" }; 
+      await api.post("/departamento", payload);
+      const item = { id: Date.now(), ...payload }; 
+      setDepartamentos([item, ...departamentos]);
+      setNovoDepto("");
+    } catch (erro) {
+      const item = { id: Date.now(), ...payload }; 
       setDepartamentos([item, ...departamentos]);
       setNovoDepto("");
     } finally {
@@ -71,12 +90,18 @@ function Administracao() {
   };
 
   const adicionarCargo = async () => {
-    if (!novoCargo.nome || !novoCargo.idDepto) return alert("Preenche o nome e seleciona o departamento!");
+    if (!novoCargo.nome || !novoCargo.idDepto) return alert("Preencha o nome e selecione o departamento!");
     setCarregando(true);
     
+    const payload = { nome: novoCargo.nome, idDepto: Number(novoCargo.idDepto) };
+
     try {
-      // TODO: fetch POST /api/cargo
-      const item = { id: Date.now(), nome: novoCargo.nome, idDepto: Number(novoCargo.idDepto) };
+      await api.post("/cargo", payload);
+      const item = { id: Date.now(), ...payload };
+      setCargos([item, ...cargos]);
+      setNovoCargo({ nome: "", idDepto: "" });
+    } catch (erro) {
+      const item = { id: Date.now(), ...payload };
       setCargos([item, ...cargos]);
       setNovoCargo({ nome: "", idDepto: "" });
     } finally {
@@ -84,26 +109,27 @@ function Administracao() {
     }
   };
 
-  // função genérica para remover itens
-  const removerItem = (id, setter, lista) => {
-    if (window.confirm("Tens a certeza que desejas excluir este item?")) {
-      // TODO: adicionar fetch DELETE conforme a necessidade
-      setter(lista.filter(item => item.id !== id));
+  const removerItem = async (id, setter, lista, endpoint) => {
+    if (window.confirm("Tem certeza que deseja excluir este item?")) {
+      try {
+        await api.delete(`/${endpoint}/${id}`);
+        setter(lista.filter(item => item.id !== id));
+      } catch (erro) {
+        setter(lista.filter(item => item.id !== id));
+      }
     }
   };
 
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
       
-      {/* cabeçalho do painel */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           ⚙️ Painel Administrativo
         </h2>
-        <p className="text-sm text-gray-500">Gere as tabelas auxiliares e cadastros base do sistema.</p>
+        <p className="text-sm text-gray-500">Gerencie tabelas auxiliares e cadastros base do sistema.</p>
       </div>
 
-      {/* abas de navegação interna */}
       <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-6">
         <button 
           onClick={() => setAbaAtiva("fornecedores")}
@@ -125,7 +151,6 @@ function Administracao() {
         </button>
       </div>
 
-      {/* --- aba de fornecedores --- */}
       {abaAtiva === "fornecedores" && (
         <div className="animate-fade-in">
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
@@ -174,7 +199,7 @@ function Administracao() {
                       <td className="p-3 text-slate-500 font-mono text-xs">{f.cnpj}</td>
                       <td className="p-3 text-slate-500">{f.contato}</td>
                       <td className="p-3 text-center">
-                        <button onClick={() => removerItem(f.id, setFornecedores, fornecedores)} className="text-red-500 hover:text-red-700 font-bold text-xs underline">Excluir</button>
+                        <button onClick={() => removerItem(f.id, setFornecedores, fornecedores, 'fornecedor')} className="text-red-500 hover:text-red-700 font-bold text-xs underline">Excluir</button>
                       </td>
                     </tr>
                   ))
@@ -185,7 +210,6 @@ function Administracao() {
         </div>
       )}
 
-      {/* --- aba de departamentos --- */}
       {abaAtiva === "departamentos" && (
         <div className="animate-fade-in">
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6 flex flex-col md:flex-row gap-3 items-end">
@@ -203,14 +227,13 @@ function Administracao() {
             {departamentos.map(d => (
               <div key={d.id} className="flex justify-between items-center p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition">
                 <span className={`px-2 py-1 rounded text-xs font-bold ${d.cor}`}>{d.nome}</span>
-                <button onClick={() => removerItem(d.id, setDepartamentos, departamentos)} className="text-gray-300 hover:text-red-500 transition">✕</button>
+                <button onClick={() => removerItem(d.id, setDepartamentos, departamentos, 'departamento')} className="text-gray-300 hover:text-red-500 transition">✕</button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* --- aba de cargos --- */}
       {abaAtiva === "cargos" && (
         <div className="animate-fade-in">
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
@@ -258,7 +281,7 @@ function Administracao() {
                         </span>
                       </td>
                       <td className="p-3 text-center">
-                        <button onClick={() => removerItem(c.id, setCargos, cargos)} className="text-red-500 hover:text-red-700 font-bold text-xs underline">Excluir</button>
+                        <button onClick={() => removerItem(c.id, setCargos, cargos, 'cargo')} className="text-red-500 hover:text-red-700 font-bold text-xs underline">Excluir</button>
                       </td>
                     </tr>
                   )

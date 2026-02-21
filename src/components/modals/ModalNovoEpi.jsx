@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { api } from "../../services/api";
 
-// listas de opções (mockadas até o backend ter rotas para elas)
 const categoriasDisponiveis = [
   { id: 1, nome: "Proteção da Cabeça (Capacetes/Toucas)" },
   { id: 2, nome: "Proteção Auditiva (Protetores/Abafadores)" },
@@ -18,7 +18,6 @@ const statusDisponiveis = [
 ];
 
 function ModalNovoEpi({ onClose, onSalvar }) {
-  // meus estados do formulário
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [preco, setPreco] = useState("");
@@ -30,18 +29,14 @@ function ModalNovoEpi({ onClose, onSalvar }) {
   const [status, setStatus] = useState("1");
   const [carregando, setCarregando] = useState(false);
 
-  // função para salvar os dados no banco
   const salvarEpi = async () => {
-    // validação básica
     if (!nome || !quantidade || !categoria || !preco) {
-      alert("Por favor, preenche os campos obrigatórios (*).");
+      alert("Por favor, preencha os campos obrigatórios (*).");
       return;
     }
 
     setCarregando(true);
 
-    // montando o pacote de dados igual ao backend (DTO)
-    // o Go exige formato de data com hora (RFC3339), por isso adiciono o T00:00:00Z
     const novoProduto = {
       nome: nome,
       descricao: descricao,
@@ -55,36 +50,21 @@ function ModalNovoEpi({ onClose, onSalvar }) {
     };
 
     try {
-      // enviando para a rota de criação (POST)
-      const resposta = await fetch("http://localhost:8080/api/produto", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(novoProduto),
-      });
-
-      if (resposta.ok) {
-        alert("Produto guardado com sucesso no banco de dados!");
-        if (onSalvar) onSalvar(); 
-        onClose();
-      } else {
-        alert("Erro ao guardar o produto. Verifica os dados e tenta novamente.");
-      }
+      await api.post("/produto", novoProduto);
+      alert("Produto guardado com sucesso no banco de dados!");
+      if (onSalvar) onSalvar(); 
+      onClose();
     } catch (erro) {
-      console.error("Erro na requisição:", erro);
-      alert("Não foi possível conectar ao servidor. Verifica se o backend está a correr.");
+      alert("Não foi possível conectar ao servidor ou houve um erro ao guardar.");
     } finally {
       setCarregando(false);
     }
   };
 
-  // estrutura do modal
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
         
-        {/* cabeçalho */}
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-slate-200 p-2 rounded-lg text-slate-700">
@@ -99,10 +79,8 @@ function ModalNovoEpi({ onClose, onSalvar }) {
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 font-bold text-xl transition">✕</button>
         </div>
 
-        {/* formulário */}
         <div className="p-6 overflow-y-auto space-y-6">
 
-            {/* identificação */}
             <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Identificação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,7 +134,6 @@ function ModalNovoEpi({ onClose, onSalvar }) {
                 </div>
             </div>
 
-            {/* controle e logística */}
             <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Controle e Valores</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -219,7 +196,6 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
         </div>
 
-        {/* rodapé e botões */}
         <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t shrink-0">
           <button
             onClick={onClose}

@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { api } from "../../services/api";
 
-// MOCK DATA (Simulação de um banco de dados de CAs do Ministério do Trabalho)
 const mockBancoCA = [
   { id: 1, nome: "Capacete de Segurança Aba Frontal", ca: "12345", fabricante: "3M do Brasil", validade: "2028-10-15", status: "VÁLIDO" },
   { id: 2, nome: "Luva de Raspa Cano Longo", ca: "67890", fabricante: "Volk do Brasil", validade: "2023-05-20", status: "VENCIDO" },
@@ -12,22 +12,21 @@ const mockBancoCA = [
 function ModalBusca({ onClose }) {
   const [termo, setTermo] = useState("");
   const [resultados, setResultados] = useState([]);
-  const [jaBuscou, setJaBuscou] = useState(false); // Para controlar msg de "não encontrado"
+  const [jaBuscou, setJaBuscou] = useState(false);
+  const [carregando, setCarregando] = useState(false);
 
-  // Helper para formatar data
   const formatarData = (data) => {
     return new Date(data).toLocaleDateString("pt-BR", { timeZone: "UTC" });
   };
 
-  // Helper para checar se está vencido
   const isVencido = (dataValidade) => {
     const hoje = new Date();
     const validade = new Date(dataValidade);
     return hoje > validade;
   };
 
-  function buscar(e) {
-    if(e) e.preventDefault(); // Evita recarregar se vier de um form submit
+  const buscar = async (e) => {
+    if(e) e.preventDefault(); 
     
     if (!termo.trim()) {
       setResultados([]);
@@ -35,9 +34,19 @@ function ModalBusca({ onClose }) {
       return;
     }
 
+    setCarregando(true);
+    let dadosParaFiltrar = [];
+
+    try {
+      const resposta = await api.get("/cas");
+      dadosParaFiltrar = resposta;
+    } catch (erro) {
+      dadosParaFiltrar = mockBancoCA;
+    }
+
     const termoLower = termo.toLowerCase();
     
-    const filtrados = mockBancoCA.filter(item =>
+    const filtrados = dadosParaFiltrar.filter(item =>
       item.nome.toLowerCase().includes(termoLower) ||
       item.ca.includes(termoLower) ||
       item.fabricante.toLowerCase().includes(termoLower)
@@ -45,13 +54,13 @@ function ModalBusca({ onClose }) {
 
     setResultados(filtrados);
     setJaBuscou(true);
+    setCarregando(false);
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
 
-        {/* CABEÇALHO*/}
         <div className="bg-yellow-50 px-6 py-4 border-b border-yellow-100 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="bg-yellow-100 p-2 rounded-lg text-yellow-700">
@@ -66,10 +75,8 @@ function ModalBusca({ onClose }) {
           <button onClick={onClose} className="text-yellow-600 hover:text-yellow-800 transition">✕</button>
         </div>
 
-        {/* CORPO */}
         <div className="p-6 overflow-y-auto">
           
-          {/* CAMPO DE BUSCA */}
           <form onSubmit={buscar} className="flex gap-2 mb-6">
             <div className="relative flex-1">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -86,13 +93,13 @@ function ModalBusca({ onClose }) {
             </div>
             <button
                 type="submit"
-                className="bg-yellow-500 text-white px-6 rounded-lg font-bold hover:bg-yellow-600 transition shadow-sm"
+                disabled={carregando}
+                className={`text-white px-6 rounded-lg font-bold shadow-sm transition ${carregando ? 'bg-yellow-400 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600'}`}
             >
-                Buscar
+                {carregando ? "..." : "Buscar"}
             </button>
           </form>
 
-          {/* ÁREA DE RESULTADOS */}
           <div className="space-y-3">
             {resultados.length > 0 ? (
               resultados.map((item) => {
@@ -135,7 +142,6 @@ function ModalBusca({ onClose }) {
                 );
               })
             ) : (
-                // MENSAGEM DE VAZIO OU INICIAL
                 <div className="text-center py-8 text-gray-400">
                     {jaBuscou ? (
                         <>
@@ -154,7 +160,6 @@ function ModalBusca({ onClose }) {
 
         </div>
 
-        {/* RODAPÉ */}
         <div className="bg-gray-50 px-6 py-4 flex justify-end border-t">
           <button
             onClick={onClose}

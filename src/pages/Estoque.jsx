@@ -1,34 +1,28 @@
 import { useState, useEffect } from "react";
 import ModalNovoEpi from "../components/modals/ModalNovoEpi";
+import { api } from "../services/api";
 
-function Estoque() {
-  // meus estados principais
+function Estoque({ usuarioLogado }) {
   const [epis, setEpis] = useState([]);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [modalAberto, setModalAberto] = useState(false);
-  
   const itensPorPagina = 5;
+  const isAdmin = usuarioLogado?.role === "admin"; 
 
-  // puxando os produtos do banco de dados (go)
   const carregarProdutos = async () => {
     try {
-      const resposta = await fetch("http://localhost:8080/api/produtos");
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setEpis(dados);
-      }
+      const dados = await api.get("/produtos"); 
+      setEpis(dados);
     } catch (erro) {
       console.error("Servidor fora do ar ou erro na requisição:", erro);
     }
   };
 
-  // carrega a lista assim que eu abrir a tela
   useEffect(() => {
     carregarProdutos();
   }, []);
 
-  // formatações visuais
   const formatarValidade = (dataString) => {
     if (!dataString) return "--";
     const [ano, mes, dia] = dataString.substring(0, 10).split('-');
@@ -45,7 +39,6 @@ function Estoque() {
     return "bg-green-100 text-green-700 border-green-200";
   };
 
-  // filtros e paginação da tabela
   const listaFiltrada = epis.filter((epi) => {
     const termo = busca.toLowerCase();
     return (
@@ -60,11 +53,8 @@ function Estoque() {
   const itensVisiveis = listaFiltrada.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(listaFiltrada.length / itensPorPagina);
 
-  // renderização da página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 max-w-full relative">
-      
-      {/* cabeçalho e botão novo */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -74,16 +64,17 @@ function Estoque() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-          <button
-            onClick={() => setModalAberto(true)}
-            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm w-full sm:w-auto"
-          >
-            + Novo Produto
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setModalAberto(true)}
+              className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm w-full sm:w-auto"
+            >
+              + Novo Produto
+            </button>
+          )}
         </div>
       </div>
 
-      {/* barra de pesquisa */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
@@ -100,7 +91,6 @@ function Estoque() {
         </div>
       </div>
 
-      {/* tabela para telas grandes */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -141,7 +131,6 @@ function Estoque() {
         </table>
       </div>
 
-      {/* cards para celular */}
       <div className="lg:hidden space-y-4">
         {itensVisiveis.length > 0 ? (
           itensVisiveis.map((epi) => (
@@ -167,7 +156,6 @@ function Estoque() {
         )}
       </div>
 
-      {/* controle de páginas */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -190,13 +178,13 @@ function Estoque() {
         </div>
       )}
 
-      {/* renderiza o modal se estiver aberto */}
+
       {modalAberto && (
         <ModalNovoEpi 
           onClose={() => setModalAberto(false)} 
           onSalvar={() => {
             setModalAberto(false);
-            carregarProdutos(); // recarrega a tabela depois de salvar
+            carregarProdutos(); 
           }} 
         />
       )}

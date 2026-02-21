@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import ModalBaixa from "../components/modals/ModalBaixa";
+import { api } from "../services/api";
 
-// os meus mocks provisórios (até o Go ter as tabelas necessárias)
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", setor: "Produção", matricula: "483920" },
   { id: 2, nome: "Maria Santos", setor: "Segurança", matricula: "739104" },
@@ -23,26 +23,19 @@ const mockDevolucoesInicial = [
 ];
 
 function Devolucoes() {
-  // os meus estados da tela
-  const [devolucoes, setDevolucoes] = useState(mockDevolucoesInicial);
+  const [devolucoes, setDevolucoes] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
   
-  // filtros e paginação
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
 
-  // puxar as devoluções do banco de dados (preparado para a rota futura)
   const carregarDevolucoes = async () => {
     try {
-      // TODO: alterar a url quando o backend de devoluções existir
-      const resposta = await fetch("http://localhost:8080/api/devolucoes");
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setDevolucoes(dados);
-      }
+      const dados = await api.get("/devolucoes");
+      setDevolucoes(dados);
     } catch (erro) {
-      console.log("Backend não tem devoluções ainda. A usar dados falsos (mock).");
+      setDevolucoes(mockDevolucoesInicial);
     }
   };
 
@@ -50,14 +43,12 @@ function Devolucoes() {
     carregarDevolucoes();
   }, []);
 
-  // formatar a data visualmente
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.substring(0, 10).split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // a minha lógica de filtro e pesquisa
   const devolucoesFiltradas = devolucoes.filter((d) => {
     const func = mockFuncionarios.find(f => f.id === d.funcionario);
     const termo = busca.toLowerCase();
@@ -68,26 +59,28 @@ function Devolucoes() {
     return matchFuncionario || matchMotivo;
   });
 
-  // a minha lógica de ordenação (mais recentes primeiro)
   const devolucoesOrdenadas = [...devolucoesFiltradas].sort((a, b) => {
     if (a.data < b.data) return 1;
     if (a.data > b.data) return -1;
     return 0;
   });
 
-  // a minha paginação
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const devolucoesVisiveis = devolucoesOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
   const totalPaginas = Math.ceil(devolucoesOrdenadas.length / itensPorPagina);
 
-  // adicionar uma devolução que veio do modal
-  const receberNovaDevolucao = (novaDevolucao) => {
-    setDevolucoes((prev) => [novaDevolucao, ...prev]);
-    setPaginaAtual(1);
+  const receberNovaDevolucao = async (novaDevolucao) => {
+    try {
+      await api.post("/devolucao", novaDevolucao);
+      setDevolucoes((prev) => [novaDevolucao, ...prev]);
+      setPaginaAtual(1);
+    } catch (erro) {
+      setDevolucoes((prev) => [novaDevolucao, ...prev]);
+      setPaginaAtual(1);
+    }
   };
 
-  // a minha função para imprimir o relatório em PDF (CORRIGIDA)
   const imprimirRelatorioDevolucoes = () => {
     const conteudo = `
       <html>
@@ -167,11 +160,8 @@ function Devolucoes() {
     win.document.close();
   };
 
-  // o visual da minha página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
-      
-      {/* cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -196,7 +186,6 @@ function Devolucoes() {
         </div>
       </div>
 
-      {/* barra de busca */}
       <div className="relative mb-6">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
         <input
@@ -211,7 +200,6 @@ function Devolucoes() {
         />
       </div>
 
-      {/* tabela para telas grandes */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -280,7 +268,6 @@ function Devolucoes() {
         </table>
       </div>
 
-      {/* cards para telemóveis e tablets */}
       <div className="lg:hidden space-y-4">
         {devolucoesVisiveis.length > 0 ? (
           devolucoesVisiveis.map((d) => {
@@ -328,7 +315,6 @@ function Devolucoes() {
         )}
       </div>
 
-      {/* controlo de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -353,7 +339,6 @@ function Devolucoes() {
         </div>
       )}
 
-      {/* o meu modal de registo de baixa */}
       {modalAberto && (
         <ModalBaixa 
             onClose={() => setModalAberto(false)} 

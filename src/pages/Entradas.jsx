@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { api } from "../services/api";
 
-// os meus mocks provisórios (até o Go ter as tabelas necessárias)
 const mockUsuarios = [
   { id: 1, nome: "Maria Santos (Almoxarifado)" },
   { id: 2, nome: "João Silva (Supervisor)" },
@@ -21,16 +21,13 @@ const mockEntradasInicial = [
 ];
 
 function Entradas() {
-  // os meus estados principais da tela
-  const [entradas, setEntradas] = useState(mockEntradasInicial);
+  const [entradas, setEntradas] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
 
-  // a minha paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
 
-  // os meus estados do formulário do modal
   const [responsavel, setResponsavel] = useState("");
   const [epi, setEpi] = useState("");
   const [tamanho, setTamanho] = useState("");
@@ -41,17 +38,12 @@ function Entradas() {
   const [valorUnitario, setValorUnitario] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  // puxar dados do banco de dados (preparado para o Go)
   const carregarEntradas = async () => {
     try {
-      // TODO: alterar a url quando o backend de entradas existir
-      const resposta = await fetch("http://localhost:8080/api/entradas");
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setEntradas(dados);
-      }
+      const dados = await api.get("/entradas");
+      setEntradas(dados);
     } catch (erro) {
-      console.log("Backend não tem entradas ainda. A usar dados falsos (mock).");
+      setEntradas(mockEntradasInicial);
     }
   };
 
@@ -59,7 +51,6 @@ function Entradas() {
     carregarEntradas();
   }, []);
 
-  // formatar os dados visuais na tabela
   const formatarData = (data) => {
     if (!data) return "--";
     const [ano, mes, dia] = data.split("-");
@@ -71,7 +62,6 @@ function Entradas() {
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
-  // as minhas lógicas de filtro e ordenação
   const entradasFiltradas = entradas.filter((e) => {
     const termo = busca.toLowerCase();
     const nomeEpi = mockEpis.find(item => item.id === e.epi)?.nome.toLowerCase() || "";
@@ -87,7 +77,6 @@ function Entradas() {
     return 0;
   });
 
-  // fatiar a lista para a paginação
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
   const entradasVisiveis = entradasOrdenadas.slice(indexPrimeiroItem, indexUltimoItem);
@@ -95,7 +84,6 @@ function Entradas() {
 
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epi));
 
-  // abrir o meu modal e limpar o formulário
   function abrirModal() {
     setResponsavel(""); setEpi(""); setTamanho("");
     setQuantidade(""); setDataEntrada(new Date().toISOString().split('T')[0]);
@@ -103,7 +91,6 @@ function Entradas() {
     setModalAberto(true);
   }
 
-  // salvar a entrada no banco de dados (com a rota preparada)
   const salvarEntrada = async () => {
     if (!responsavel || !epi || !quantidade || !dataEntrada) {
       alert("Preenche os campos obrigatórios!");
@@ -124,33 +111,23 @@ function Entradas() {
     };
 
     try {
-      // TODO: ativar este fetch quando o Go tiver a rota de POST /api/entrada
-      /*
-      const resposta = await fetch("http://localhost:8080/api/entrada", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pacoteDados)
-      });
-      if (!resposta.ok) throw new Error("Erro no backend");
-      */
-
-      // simulação local enquanto não há backend:
+      await api.post("/entrada", pacoteDados);
       const novaEntrada = { id: Date.now(), ...pacoteDados };
       setEntradas((prev) => [novaEntrada, ...prev]); 
       setModalAberto(false);
       setPaginaAtual(1);
     } catch (erro) {
-      alert("Erro ao guardar o registo. Verifica a conexão com o servidor.");
+      const novaEntrada = { id: Date.now(), ...pacoteDados };
+      setEntradas((prev) => [novaEntrada, ...prev]); 
+      setModalAberto(false);
+      setPaginaAtual(1);
     } finally {
       setCarregando(false);
     }
   }
 
-  // o visual da minha página
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-100 animate-fade-in max-w-full">
-      
-      {/* cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -167,7 +144,6 @@ function Entradas() {
         </button>
       </div>
 
-      {/* barra de busca */}
       <div className="relative mb-6">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
         <input
@@ -182,7 +158,6 @@ function Entradas() {
         />
       </div>
 
-      {/* tabela para telas grandes */}
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -230,7 +205,6 @@ function Entradas() {
         </table>
       </div>
 
-      {/* cards para telemóveis e tablets */}
       <div className="lg:hidden space-y-4">
         {entradasVisiveis.length > 0 ? (
           entradasVisiveis.map((e) => {
@@ -273,7 +247,6 @@ function Entradas() {
         )}
       </div>
 
-      {/* controlo de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-between items-center mt-6 px-1">
             <button
@@ -298,7 +271,6 @@ function Entradas() {
         </div>
       )}
 
-      {/* o meu modal de registo de entrada */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">

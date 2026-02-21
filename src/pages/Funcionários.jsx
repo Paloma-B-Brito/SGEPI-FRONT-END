@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "../services/api";
 
 const mockDepartamentos = [
   { id: 1, nome: "Produção", cor: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -28,11 +29,12 @@ function gerarMatricula() {
 }
 
 function Funcionarios({ usuarioLogado }) {
-  const [funcionarios, setFuncionarios] = useState(mockFuncionariosInicial);
+  const [funcionarios, setFuncionarios] = useState([]);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
   const isAdmin = usuarioLogado?.role === "admin";
+  
   const [modalAberto, setModalAberto] = useState(false);
   const [funcSelecionado, setFuncSelecionado] = useState(null);
   const [formNome, setFormNome] = useState("");
@@ -43,13 +45,10 @@ function Funcionarios({ usuarioLogado }) {
 
   const carregarFuncionarios = async () => {
     try {
-      const resposta = await fetch("http://localhost:8080/api/funcionarios");
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setFuncionarios(dados);
-      }
+      const dados = await api.get("/funcionarios");
+      setFuncionarios(dados);
     } catch (erro) {
-      console.log("A usar dados locais enquanto o backend de funcionários não sobe.");
+      setFuncionarios(mockFuncionariosInicial);
     }
   };
 
@@ -60,6 +59,7 @@ function Funcionarios({ usuarioLogado }) {
   const listaFiltrada = funcionarios.filter((f) =>
     f.nome.toLowerCase().includes(busca.toLowerCase()) || f.matricula.includes(busca)
   );
+  
   const funcionariosOrdenados = listaFiltrada.sort((a, b) => a.nome.localeCompare(b.nome));
   const indexUltimoItem = paginaAtual * itensPorPagina;
   const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
@@ -124,10 +124,19 @@ function Funcionarios({ usuarioLogado }) {
     const depObj = mockDepartamentos.find((d) => d.id === Number(formDepartamento));
     const funcObj = mockFuncoes.find((f) => f.id === Number(formFuncao));
     
+    const pacoteDados = {
+      nome: formNome,
+      departamento_id: Number(formDepartamento),
+      funcao_id: Number(formFuncao),
+      senha: formSenha
+    };
+
     try {
       if (funcSelecionado) {
+        // await api.put(`/funcionario/${funcSelecionado.id}`, pacoteDados);
         setFuncionarios((prev) => prev.map((f) => f.id === funcSelecionado.id ? { ...f, nome: formNome, departamento: depObj, funcao: funcObj } : f));
       } else {
+        // await api.post("/funcionario", pacoteDados);
         const novoFunc = { 
           id: Date.now(), 
           nome: formNome, 
@@ -140,16 +149,28 @@ function Funcionarios({ usuarioLogado }) {
       }
       setModalAberto(false);
     } catch (erro) {
-      alert("Erro ao salvar.");
+      alert("Erro ao salvar no servidor. Salvando localmente para testes.");
+      if (funcSelecionado) {
+        setFuncionarios((prev) => prev.map((f) => f.id === funcSelecionado.id ? { ...f, nome: formNome, departamento: depObj, funcao: funcObj } : f));
+      } else {
+        const novoFunc = { id: Date.now(), nome: formNome, matricula: gerarMatricula(), departamento: depObj, funcao: funcObj, role: "user" };
+        setFuncionarios((prev) => [...prev, novoFunc]);
+      }
+      setModalAberto(false);
     } finally {
       setCarregando(false);
     }
   };
 
-  const excluirFuncionario = (id) => {
+  const excluirFuncionario = async (id) => {
     if (!isAdmin) return;
     if (window.confirm("Tens a certeza que desejas excluir este funcionário?")) {
-      setFuncionarios((prev) => prev.filter((f) => f.id !== id));
+      try {
+        // await api.delete(`/funcionario/${id}`);
+        setFuncionarios((prev) => prev.filter((f) => f.id !== id));
+      } catch (error) {
+        setFuncionarios((prev) => prev.filter((f) => f.id !== id));
+      }
     }
   };
 
@@ -169,6 +190,7 @@ function Funcionarios({ usuarioLogado }) {
             </button>
         </div>
       </div>
+
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
@@ -181,6 +203,7 @@ function Funcionarios({ usuarioLogado }) {
           />
         </div>
       </div>
+
       <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
@@ -218,6 +241,39 @@ function Funcionarios({ usuarioLogado }) {
           </tbody>
         </table>
       </div>
+
+      <div className="lg:hidden space-y-4">
+        {funcionariosVisiveis.map((func) => (
+            <div key={func.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
+                <div className="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 className="font-bold text-gray-800 text-lg">{func.nome}</h3>
+                        <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">Mat: {func.matricula}</span>
+                    </div>
+                </div>
+                <div className="space-y-2 mt-3">
+                    <div><span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${func.departamento.cor}`}>{func.departamento.nome}</span></div>
+                    <div className="text-sm text-gray-600 flex items-center gap-1"><span className="font-semibold text-gray-400 text-xs uppercase">Cargo:</span>{func.funcao.nome}</div>
+                </div>
+                
+                {isAdmin && (
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
+                      <button onClick={() => abrirEdicao(func)} className="flex items-center justify-center gap-2 py-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-bold">✏️ Editar</button>
+                      <button onClick={() => excluirFuncionario(func.id)} className="flex items-center justify-center gap-2 py-2 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-bold">🗑️ Excluir</button>
+                  </div>
+                )}
+            </div>
+        ))}
+      </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex justify-between items-center mt-6 px-1">
+            <button onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))} disabled={paginaAtual === 1} className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-blue-700 border-blue-200'}`}>← Anterior</button>
+            <span className="text-xs lg:text-sm text-gray-600">Pág. <b className="text-gray-900">{paginaAtual}</b> de <b>{totalPaginas}</b></span>
+            <button onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))} disabled={paginaAtual === totalPaginas} className={`px-4 py-2 rounded text-sm font-bold border ${paginaAtual === totalPaginas ? 'bg-gray-100 text-gray-400' : 'bg-white text-blue-700 border-blue-200'}`}>Próxima →</button>
+        </div>
+      )}
+
       {modalAberto && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
@@ -280,7 +336,6 @@ function Funcionarios({ usuarioLogado }) {
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
               <button onClick={() => setModalAberto(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition">Cancelar</button>
               
-              {/* Botão de Salvar habilitado para todos no cadastro, mas apenas Admin na edição */}
               {(!funcSelecionado || isAdmin) && (
                 <button onClick={salvarFuncionario} disabled={carregando} className="px-4 py-2 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 transition shadow-md">
                   {carregando ? "A salvar..." : "Salvar Dados"}

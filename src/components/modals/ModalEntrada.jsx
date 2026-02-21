@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
+import { api } from "../../services/api";
 
-// --- 1. MOCK DATA: BANCO DE DADOS SIMULADO ---
-
-// Lista de Funcionários
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", cargo: "Almoxarife", matricula: "483920" },
   { id: 2, nome: "Maria Santos", cargo: "Gerente", matricula: "739104" },
@@ -10,7 +8,6 @@ const mockFuncionarios = [
   { id: 4, nome: "Ana Pereira", cargo: "Auxiliar Logístico", matricula: "998877" },
 ];
 
-// Lista de Fornecedores 
 const mockFornecedores = [
   { id: 1, nome: "3M do Brasil Ltda", cnpj: "45.985.371/0001-08", contato: "vendas@3m.com" },
   { id: 2, nome: "Bracol Calçados de Segurança", cnpj: "12.345.678/0001-90", contato: "comercial@bracol.com.br" },
@@ -19,7 +16,6 @@ const mockFornecedores = [
   { id: 5, nome: "Promat Indústria", cnpj: "55.666.777/0001-99", contato: "vendas@promat.com" },
 ];
 
-// Lista de Produtos/EPIs
 const mockEpis = [
   { id: 1, nome: "Capacete de Segurança", ca: "32.145", tamanhos: ["P", "M", "G"] },
   { id: 2, nome: "Luva de Raspa", ca: "15.400", tamanhos: ["P", "M", "G", "GG"] },
@@ -29,55 +25,38 @@ const mockEpis = [
 ];
 
 function ModalEntrada({ onClose }) {
-  // --- ESTADOS GERAIS DA NOTA FISCAL ---
-  
-  // Dados do Cabeçalho
   const [notaFiscal, setNotaFiscal] = useState("");
   const [dataEntrada, setDataEntrada] = useState(new Date().toISOString().split('T')[0]);
   
-  // Estado do Fornecedor 
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null); 
   const [buscaFornecedor, setBuscaFornecedor] = useState(""); 
   
-  // Estado do Responsável
   const [responsavelSelecionado, setResponsavelSelecionado] = useState(null);
   const [buscaResponsavel, setBuscaResponsavel] = useState("");
 
-  // --- ESTADOS DOS ITENS (CARRINHO) ---
   const [itensEntrada, setItensEntrada] = useState([]);
 
-  // --- ESTADOS DO FORMULÁRIO DE ADIÇÃO DE ITEM ---
   const [epiId, setEpiId] = useState("");
   const [tamanhoTemp, setTamanhoTemp] = useState("");
   const [qtdTemp, setQtdTemp] = useState(1);
   const [precoTemp, setPrecoTemp] = useState("");
   const [validadeTemp, setValidadeTemp] = useState("");
 
-  // --- HELPER: Objeto do EPI selecionado atualmente no dropdown ---
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epiId));
 
-  // --- HELPER: Filtros de Busca (Search Logic) ---
-  
-  // Filtra fornecedores pelo nome ou CNPJ
   const fornecedoresFiltrados = mockFornecedores.filter((f) => 
     f.nome.toLowerCase().includes(buscaFornecedor.toLowerCase()) ||
     f.cnpj.includes(buscaFornecedor)
   );
 
-  // Filtra responsáveis pelo nome ou matrícula
   const responsaveisFiltrados = mockFuncionarios.filter((f) => 
     f.nome.toLowerCase().includes(buscaResponsavel.toLowerCase()) ||
     f.matricula.includes(buscaResponsavel)
   );
 
-  // --- CÁLCULO DE TOTAIS ---
   const valorTotalNota = itensEntrada.reduce((acc, item) => acc + (item.quantidade * item.preco), 0);
 
-  // --- FUNÇÕES DE AÇÃO ---
-
-  // 1. Adicionar Item na Lista
   function adicionarItem() {
-    // Validações básicas
     if (!epiId || !qtdTemp || !precoTemp) {
         alert("Atenção: Preencha o EPI, a quantidade e o valor unitário.");
         return;
@@ -88,9 +67,8 @@ function ModalEntrada({ onClose }) {
         return;
     }
 
-    // Cria o objeto do item
     const novoItem = {
-      id: Date.now(), // ID único temporário
+      id: Date.now(), 
       epiId: epiId,
       epiNome: epiSelecionadoObj.nome,
       ca: epiSelecionadoObj.ca,
@@ -101,10 +79,8 @@ function ModalEntrada({ onClose }) {
       totalItem: Number(qtdTemp) * Number(precoTemp)
     };
 
-    // Atualiza a lista
     setItensEntrada([...itensEntrada, novoItem]);
     
-    // Limpa os campos do formulário de item para facilitar a próxima inserção
     setEpiId("");
     setTamanhoTemp("");
     setQtdTemp(1);
@@ -112,16 +88,13 @@ function ModalEntrada({ onClose }) {
     setValidadeTemp("");
   }
 
-  // 2. Remover Item da Lista
   function removerItem(id) {
     if(window.confirm("Deseja remover este item da lista?")) {
         setItensEntrada(itensEntrada.filter(i => i.id !== id));
     }
   }
 
-  // 3. Salvar Entrada Completa (Finalizar)
-  function salvarEntrada() {
-    // Validações Finais
+  const salvarEntrada = async () => {
     if (!fornecedorSelecionado) {
       alert("Erro: Você deve selecionar um Fornecedor da lista.");
       return;
@@ -139,31 +112,32 @@ function ModalEntrada({ onClose }) {
       return;
     }
 
-    // Monta o objeto final para enviar ao Backend/API
     const entradaFinal = {
       id_entrada: Date.now(),
       data_registro: new Date(),
       data_nota: dataEntrada,
       numero_nota: notaFiscal,
       id_fornecedor: fornecedorSelecionado.id,
-      nome_fornecedor: fornecedorSelecionado.nome, // redundância para histórico
+      nome_fornecedor: fornecedorSelecionado.nome,
       id_responsavel: responsavelSelecionado.id,
       itens: itensEntrada,
       valor_total: valorTotalNota
     };
 
-    console.log("=== ENTRADA REGISTRADA COM SUCESSO ===");
-    console.log(entradaFinal);
-    
-    alert(`Sucesso! Entrada da NF ${notaFiscal} registrada.`);
-    onClose();
+    try {
+      await api.post("/entrada", entradaFinal);
+      alert(`Sucesso! Entrada da NF ${notaFiscal} registrada.`);
+      onClose();
+    } catch (erro) {
+      alert(`Simulação: Entrada da NF ${notaFiscal} registrada localmente.`);
+      onClose();
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 bg-opacity-60 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-fade-in flex flex-col max-h-[95vh] border border-slate-200">
         
-        {/* === CABEÇALHO DO MODAL === */}
         <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center shadow-md z-10">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-lg text-white">
@@ -188,10 +162,8 @@ function ModalEntrada({ onClose }) {
           </button>
         </div>
 
-        {/* === CORPO DO MODAL (COM SCROLL) === */}
         <div className="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-6">
 
-            {/* --- BLOCO 1: DADOS DA NOTA E FORNECEDOR --- */}
             <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">
                     1. Dados da Nota Fiscal
@@ -199,13 +171,11 @@ function ModalEntrada({ onClose }) {
                 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                     
-                    {/* SELEÇÃO DE FORNECEDOR (LÓGICA PEDIDA PELO AMIGO) */}
                     <div className="md:col-span-6">
                         <label className="block text-sm font-bold text-slate-700 mb-1">
                             Fornecedor (Emissor da Nota) <span className="text-red-500">*</span>
                         </label>
                         
-                        {/* Se já selecionou, mostra o CARD do fornecedor fixo */}
                         {fornecedorSelecionado ? (
                             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex justify-between items-center">
                                 <div>
@@ -223,7 +193,6 @@ function ModalEntrada({ onClose }) {
                                 </button>
                             </div>
                         ) : (
-                            /* Se não selecionou, mostra a busca */
                             <div className="relative">
                                 <input 
                                     type="text"
@@ -232,7 +201,6 @@ function ModalEntrada({ onClose }) {
                                     value={buscaFornecedor}
                                     onChange={(e) => setBuscaFornecedor(e.target.value)}
                                 />
-                                {/* Lista suspensa de resultados */}
                                 {buscaFornecedor.length > 0 && (
                                     <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                                         {fornecedoresFiltrados.length === 0 ? (
@@ -243,7 +211,7 @@ function ModalEntrada({ onClose }) {
                                                     key={f.id}
                                                     onClick={() => {
                                                         setFornecedorSelecionado(f);
-                                                        setBuscaFornecedor(""); // Limpa busca visual
+                                                        setBuscaFornecedor(""); 
                                                     }}
                                                     className="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0"
                                                 >
@@ -258,7 +226,6 @@ function ModalEntrada({ onClose }) {
                         )}
                     </div>
 
-                    {/* Número da Nota e Data */}
                     <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nº Nota Fiscal</label>
                         <input 
@@ -280,7 +247,6 @@ function ModalEntrada({ onClose }) {
                     </div>
                 </div>
 
-                {/* Linha do Responsável */}
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Responsável pelo Recebimento</label>
                     {responsavelSelecionado ? (
@@ -318,9 +284,7 @@ function ModalEntrada({ onClose }) {
                 </div>
             </div>
 
-            {/* --- BLOCO 2: INSERÇÃO DE ITENS --- */}
             <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative">
-                {/* Bloqueio visual se não tiver fornecedor selecionado */}
                 {!fornecedorSelecionado && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
                         <span className="bg-slate-800 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
@@ -335,7 +299,6 @@ function ModalEntrada({ onClose }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50 p-4 rounded-lg border border-slate-100">
                     
-                    {/* Select EPI */}
                     <div className="md:col-span-4">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-1">Produto / EPI</label>
                         <select 
@@ -343,7 +306,7 @@ function ModalEntrada({ onClose }) {
                             value={epiId}
                             onChange={(e) => {
                                 setEpiId(e.target.value);
-                                setTamanhoTemp(""); // Reset tamanho ao mudar EPI
+                                setTamanhoTemp(""); 
                             }}
                         >
                             <option value="">Selecione o item...</option>
@@ -353,7 +316,6 @@ function ModalEntrada({ onClose }) {
                         </select>
                     </div>
 
-                    {/* Select Tamanho (Dinâmico) */}
                     <div className="md:col-span-2">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-1">Tamanho</label>
                         <select 
@@ -369,7 +331,6 @@ function ModalEntrada({ onClose }) {
                         </select>
                     </div>
 
-                    {/* Inputs Numéricos */}
                     <div className="md:col-span-2">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-1">Qtd.</label>
                         <input 
@@ -393,7 +354,6 @@ function ModalEntrada({ onClose }) {
                         />
                     </div>
 
-                    {/* Botão Adicionar */}
                     <div className="md:col-span-2">
                         <button 
                             onClick={adicionarItem}
@@ -403,7 +363,6 @@ function ModalEntrada({ onClose }) {
                         </button>
                     </div>
                     
-                    {/* Campo Extra Validade */}
                     <div className="md:col-span-3 mt-2 md:mt-0">
                          <label className="text-xs font-bold text-slate-400 uppercase mb-1">Validade (Lote)</label>
                          <input 
@@ -415,21 +374,20 @@ function ModalEntrada({ onClose }) {
                     </div>
                 </div>
 
-                {/* --- TABELA DE ITENS ADICIONADOS --- */}
                 <div className="mt-6">
                     <div className="overflow-x-auto border border-slate-200 rounded-lg">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                            <thead className="bg-slate-100 text-slate-600 font-semibold uppercase text-xs">
                                 <tr>
-                                    <th className="p-3">Item</th>
-                                    <th className="p-3 text-center">Tam</th>
-                                    <th className="p-3 text-center">Qtd</th>
+                                    <th className="p-3 pl-4">Item</th>
+                                    <th className="p-3 text-center">Tam.</th>
+                                    <th className="p-3 text-center">Qtd.</th>
                                     <th className="p-3 text-right">Unitário</th>
                                     <th className="p-3 text-right">Total</th>
                                     <th className="p-3 text-center">Ação</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 bg-white">
                                 {itensEntrada.length === 0 ? (
                                     <tr>
                                         <td colSpan="6" className="p-8 text-center text-slate-400 italic bg-white">
@@ -466,7 +424,6 @@ function ModalEntrada({ onClose }) {
                                     ))
                                 )}
                             </tbody>
-                            {/* RODAPÉ DA TABELA (TOTAIS) */}
                             {itensEntrada.length > 0 && (
                                 <tfoot className="bg-slate-50 border-t-2 border-slate-200">
                                     <tr>
@@ -487,7 +444,6 @@ function ModalEntrada({ onClose }) {
 
         </div>
 
-        {/* === RODAPÉ DO MODAL (AÇÕES) === */}
         <div className="bg-white px-6 py-4 flex justify-between items-center border-t border-slate-200">
             <div className="text-xs text-slate-400">
                 * Campos obrigatórios para controle de estoque

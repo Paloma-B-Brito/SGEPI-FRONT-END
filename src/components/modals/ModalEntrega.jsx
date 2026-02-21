@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 
-// MOCK DATA (Os mesmos dados para manter consistência)
 const mockFuncionarios = [
   { id: 1, nome: "João Silva", cargo: "Operador", matricula: "483920" },
   { id: 2, nome: "Maria Santos", cargo: "Técnica", matricula: "739104" },
@@ -18,39 +17,30 @@ const mockEpis = [
 ];
 
 function ModalEntrega({ onClose, onSalvar }) {
-  // Estados do Formulário
   const [funcionario, setFuncionario] = useState("");
   const [buscaFuncionario, setBuscaFuncionario] = useState(""); 
   const [dataEntrega, setDataEntrega] = useState(new Date().toISOString().split('T')[0]);
-  
-  // Lista de itens
   const [itensParaEntregar, setItensParaEntregar] = useState([]);
-
-  // Campos temporários para adicionar itens
   const [epiTemp, setEpiTemp] = useState("");
   const [tamanhoTemp, setTamanhoTemp] = useState("");
   const [qtdTemp, setQtdTemp] = useState(1);
 
-  // --- LÓGICA DO CANVAS (ASSINATURA) ---
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  // Aqui eu inicializo o canvas assim que o modal abre
   useEffect(() => {
     const canvas = canvasRef.current;
-    // Defino o tamanho do canvas (idealmente dobrar a densidade para telas retina, mas aqui simplifiquei)
     canvas.width = 500; 
     canvas.height = 150;
     
     const ctx = canvas.getContext("2d");
-    ctx.lineCap = "round"; // Ponta redonda
-    ctx.strokeStyle = "black"; // Cor da caneta
-    ctx.lineWidth = 2; // Espessura
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
     contextRef.current = ctx;
   }, []);
 
-  // Quando começo a desenhar (clique do mouse)
   const startDrawing = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
     contextRef.current.beginPath();
@@ -58,13 +48,11 @@ function ModalEntrega({ onClose, onSalvar }) {
     setIsDrawing(true);
   };
 
-  // Quando termino de desenhar (solto o clique)
   const finishDrawing = () => {
     contextRef.current.closePath();
     setIsDrawing(false);
   };
 
-  // Enquanto estou movendo o mouse
   const draw = ({ nativeEvent }) => {
     if (!isDrawing) return;
     const { offsetX, offsetY } = nativeEvent;
@@ -72,18 +60,14 @@ function ModalEntrega({ onClose, onSalvar }) {
     contextRef.current.stroke();
   };
 
-  // Função para limpar o canvas se eu errar a assinatura
   const limparAssinatura = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  // --- FIM DA LÓGICA DO CANVAS ---
-
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epiTemp));
 
-  // Meu filtro de funcionários
   const funcionariosFiltrados = mockFuncionarios.filter((f) => 
     f.nome.toLowerCase().includes(buscaFuncionario.toLowerCase()) ||
     f.matricula.includes(buscaFuncionario)
@@ -93,8 +77,8 @@ function ModalEntrega({ onClose, onSalvar }) {
     if (!epiTemp || !qtdTemp) return;
 
     if (epiSelecionadoObj?.tamanhos.length > 0 && !tamanhoTemp) {
-        alert("Selecione o tamanho.");
-        return;
+      alert("Selecione o tamanho.");
+      return;
     }
 
     const novoItem = {
@@ -121,21 +105,18 @@ function ModalEntrega({ onClose, onSalvar }) {
       return;
     }
 
-    // Aqui eu pego a imagem da assinatura em Base64
     const assinaturaImagem = canvasRef.current.toDataURL(); 
-
     const funcSelecionado = mockFuncionarios.find(f => f.id === Number(funcionario));
 
     const entregaFinal = {
       id: Date.now(),
-      funcionario: Number(funcionario), // ID
-      nome_funcionario: funcSelecionado?.nome, // Nome para facilitar
+      funcionario: Number(funcionario),
+      nome_funcionario: funcSelecionado?.nome,
       dataEntrega: dataEntrega,
       itens: itensParaEntregar,
-      assinatura: assinaturaImagem // Salvo a imagem gerada
+      assinatura: assinaturaImagem 
     };
 
-    // Chamo a função do pai para salvar na lista principal
     if(onSalvar) {
         onSalvar(entregaFinal);
     }
@@ -146,7 +127,6 @@ function ModalEntrega({ onClose, onSalvar }) {
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
         
-        {/* CABEÇALHO */}
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="bg-blue-100 p-2 rounded-lg text-blue-700">
@@ -161,17 +141,11 @@ function ModalEntrega({ onClose, onSalvar }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">✕</button>
         </div>
 
-        {/* CORPO DO FORMULÁRIO */}
         <div className="p-6 overflow-y-auto space-y-6">
 
-            {/* SEÇÃO 1: FUNCIONÁRIO E DATA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* LISTA CUSTOMIZADA DE FUNCIONÁRIOS */}
                 <div className="flex flex-col gap-2">
                     <label className="block text-sm font-medium text-slate-700">Colaborador</label>
-                    
-                    {/* Busca */}
                     <div className="relative">
                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
                         <input 
@@ -182,8 +156,6 @@ function ModalEntrega({ onClose, onSalvar }) {
                             onChange={(e) => setBuscaFuncionario(e.target.value)}
                         />
                     </div>
-
-                    {/* Lista Scrollável */}
                     <div className="w-full border border-slate-300 rounded-b-lg -mt-3 bg-white max-h-32 overflow-y-auto border-t-0">
                         {funcionariosFiltrados.length === 0 ? (
                              <div className="p-3 text-sm text-gray-400 text-center italic">Não encontrado</div>
@@ -221,7 +193,6 @@ function ModalEntrega({ onClose, onSalvar }) {
 
             <hr className="border-slate-100" />
 
-            {/* SEÇÃO 2: ADICIONAR ITENS */}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-700 mb-3">🛠️ Adicionar Materiais</h3>
                 
@@ -260,7 +231,6 @@ function ModalEntrega({ onClose, onSalvar }) {
                 </div>
             </div>
 
-            {/* LISTA DE ITENS */}
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Itens na Lista ({itensParaEntregar.length})</label>
                 {itensParaEntregar.length > 0 ? (
@@ -295,7 +265,6 @@ function ModalEntrega({ onClose, onSalvar }) {
                 )}
             </div>
 
-            {/* ÁREA DE ASSINATURA (CANVAS) */}
             <div>
                 <div className="flex justify-between items-end mb-1">
                     <label className="block text-sm font-medium text-slate-700">Assinatura Digital</label>
@@ -309,9 +278,8 @@ function ModalEntrega({ onClose, onSalvar }) {
                         onMouseUp={finishDrawing}
                         onMouseMove={draw}
                         onMouseLeave={finishDrawing}
-                        // Eventos para Celular/Tablet (Touch)
                         onTouchStart={(e) => {
-                            e.preventDefault(); // Previne scroll da tela
+                            e.preventDefault(); 
                             const touch = e.touches[0];
                             const rect = canvasRef.current.getBoundingClientRect();
                             const nativeEvent = { offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top };
@@ -337,7 +305,6 @@ function ModalEntrega({ onClose, onSalvar }) {
 
         </div>
 
-        {/* RODAPÉ */}
         <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-200">
           <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition">Cancelar</button>
           <button onClick={salvarEntrega} className="px-6 py-2 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 shadow-md transition flex items-center gap-2">

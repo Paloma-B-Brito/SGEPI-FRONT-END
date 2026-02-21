@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { api } from "../../services/api";
 
 const mockEpis = [
   { id: 1, nome: "Capacete de Segurança", tamanhos: ["M", "G"] },
@@ -15,15 +16,15 @@ const motivosBaixa = [
   "Devolução de Funcionário", 
 ];
 
-function ModalBaixa({ onClose }) {
+function ModalBaixa({ onClose, onSalvar }) {
   const [epi, setEpi] = useState("");
   const [tamanho, setTamanho] = useState("");
   const [quantidade, setQuantidade] = useState(1);
   const [motivo, setMotivo] = useState("");
   const [dataBaixa, setDataBaixa] = useState(new Date().toISOString().split('T')[0]);
   const [observacao, setObservacao] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
-  // --- LÓGICA DA ASSINATURA (CANVAS) ---
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -31,7 +32,6 @@ function ModalBaixa({ onClose }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-        // Define resolução interna
         canvas.width = 500;
         canvas.height = 150;
         
@@ -70,7 +70,7 @@ function ModalBaixa({ onClose }) {
 
   const epiSelecionadoObj = mockEpis.find((e) => e.id === Number(epi));
 
-  function salvarBaixa() {
+  const salvarBaixa = async () => {
     if (!epi || !motivo || !quantidade || !dataBaixa) {
         alert("Preencha os campos obrigatórios: EPI, Quantidade, Motivo e Data.");
         return;
@@ -81,9 +81,11 @@ function ModalBaixa({ onClose }) {
         return;
     }
 
+    setCarregando(true);
     const assinaturaImagem = canvasRef.current.toDataURL();
 
     const baixa = {
+      id: Date.now(),
       id_epi: Number(epi),
       nome_epi: epiSelecionadoObj?.nome,
       tamanho: tamanho || "Único",
@@ -91,18 +93,28 @@ function ModalBaixa({ onClose }) {
       motivo,
       data_baixa: dataBaixa,
       observacao,
-      assinatura: assinaturaImagem 
+      assinatura: assinaturaImagem,
+      data: dataBaixa,
+      funcionario: 1, 
+      troca: null
     };
 
-    console.log("Baixa/Devolução Registrada:", baixa);
-    onClose();
+    try {
+      await api.post("/baixa", baixa);
+      if (onSalvar) onSalvar(baixa);
+      onClose();
+    } catch (erro) {
+      if (onSalvar) onSalvar(baixa);
+      onClose();
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[95vh]">
         
-        {/* CABEÇALHO (VERMELHO PARA ALERTA) */}
         <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-red-100 p-2 rounded-lg text-red-600">
@@ -117,10 +129,8 @@ function ModalBaixa({ onClose }) {
           <button onClick={onClose} className="text-red-400 hover:text-red-600 transition">✕</button>
         </div>
 
-        {/* CORPO DO FORMULÁRIO - USUÁRIO PREENCHE AQUI */}
         <div className="p-6 overflow-y-auto space-y-4">
             
-            {/* Linha 1: EPI e Tamanho */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Selecione o Item</label>
@@ -166,7 +176,6 @@ function ModalBaixa({ onClose }) {
                 </div>
             </div>
 
-            {/* Linha 2: Motivo e Data */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
@@ -193,7 +202,6 @@ function ModalBaixa({ onClose }) {
                 </div>
             </div>
 
-            {/* Observação */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
                 <textarea
@@ -205,7 +213,6 @@ function ModalBaixa({ onClose }) {
                 />
             </div>
 
-            {/* --- ÁREA DE ASSINATURA (CANVAS) --- */}
             <div className="border-t border-gray-100 pt-4 mt-2">
                 <div className="flex justify-between items-end mb-2">
                     <label className="block text-sm font-bold text-gray-700">
@@ -226,7 +233,6 @@ function ModalBaixa({ onClose }) {
                         onMouseUp={finishDrawing}
                         onMouseMove={draw}
                         onMouseLeave={finishDrawing}
-                        // Eventos de Toque (Mobile/Tablet)
                         onTouchStart={(e) => {
                             e.preventDefault(); 
                             const touch = e.touches[0];
@@ -244,7 +250,6 @@ function ModalBaixa({ onClose }) {
                         onTouchEnd={finishDrawing}
                         className="w-full h-32 block"
                     />
-                    
                     {!isDrawing && (
                         <div className="absolute bottom-2 right-2 text-[10px] text-red-300 pointer-events-none select-none">
                             Assine no espaço pontilhado
@@ -255,10 +260,10 @@ function ModalBaixa({ onClose }) {
 
         </div>
 
-        {/* RODAPÉ */}
         <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t shrink-0">
           <button
             onClick={onClose}
+            disabled={carregando}
             className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition"
           >
             Cancelar
@@ -266,9 +271,11 @@ function ModalBaixa({ onClose }) {
 
           <button
             onClick={salvarBaixa}
-            className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md transition flex items-center gap-2"
+            disabled={carregando}
+            className={`px-4 py-2 text-white font-bold rounded-lg shadow-md transition flex items-center gap-2 ${carregando ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
           >
-            <span>💾</span> Confirmar
+            <span>{carregando ? "⏳" : "💾"}</span>
+            {carregando ? "A confirmar..." : "Confirmar"}
           </button>
         </div>
 
