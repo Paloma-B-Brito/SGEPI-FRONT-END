@@ -9,6 +9,7 @@ import Devolucoes from "./pages/Devoluções";
 import Funcionarios from "./pages/Funcionários";
 import Fornecedores from "./pages/Fornecedores";
 import Administracao from "./pages/Administracao";
+import Departamentos from "./pages/Departamentos";
 
 function App() {
   const [usuario, setUsuario] = useState(null); 
@@ -32,6 +33,8 @@ function App() {
         return <Devolucoes />;
       case "Funcionários":
         return <Funcionarios usuarioLogado={usuario} />;
+      case "Departamentos":
+        return <Departamentos />;
       case "Fornecedores":
         return <Fornecedores />;
       case "Administracao":
