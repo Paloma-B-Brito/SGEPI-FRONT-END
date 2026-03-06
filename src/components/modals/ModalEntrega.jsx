@@ -77,16 +77,43 @@ function gerarTokenValidacao() {
   }
 }
 
-function aplicarEstiloCaneta(ctx) {
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#0f172a";
-  ctx.lineWidth = 2.4;
-}
-
 function preencherCanvasBranco(ctx, largura, altura) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, largura, altura);
+}
+
+function aplicarFerramentaNoContexto(ctx, ferramenta = "caneta") {
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.globalCompositeOperation = "source-over";
+
+  if (ferramenta === "borracha") {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 22;
+  } else {
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.8;
+  }
+}
+
+function canvasEstaEmBranco(canvas) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return true;
+
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    if (r !== 255 || g !== 255 || b !== 255 || a !== 255) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function ModalEntrega({ onClose, onSalvar }) {
@@ -117,6 +144,7 @@ function ModalEntrega({ onClose, onSalvar }) {
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [assinaturaVazia, setAssinaturaVazia] = useState(true);
+  const [ferramentaAtiva, setFerramentaAtiva] = useState("caneta");
 
   useEffect(() => {
     assinaturaPreviewRef.current = assinaturaPreview;
@@ -159,18 +187,19 @@ function ModalEntrega({ onClose, onSalvar }) {
 
       const ratio = window.devicePixelRatio || 1;
       const largura = Math.max(wrapper.clientWidth, 320);
-      const altura = Math.max(wrapper.clientHeight, 320);
+      const altura = Math.max(wrapper.clientHeight, 180);
 
       canvas.width = largura * ratio;
       canvas.height = altura * ratio;
       canvas.style.width = `${largura}px`;
       canvas.style.height = `${altura}px`;
 
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return;
+
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(ratio, ratio);
 
-      aplicarEstiloCaneta(ctx);
       preencherCanvasBranco(ctx, largura, altura);
       contextRef.current = ctx;
 
@@ -179,11 +208,12 @@ function ModalEntrega({ onClose, onSalvar }) {
         imagem.onload = () => {
           preencherCanvasBranco(ctx, largura, altura);
           ctx.drawImage(imagem, 0, 0, largura, altura);
-          aplicarEstiloCaneta(ctx);
+          aplicarFerramentaNoContexto(ctx, ferramentaAtiva);
         };
         imagem.src = assinaturaPreviewRef.current;
         setAssinaturaVazia(false);
       } else {
+        aplicarFerramentaNoContexto(ctx, ferramentaAtiva);
         setAssinaturaVazia(true);
       }
     }
@@ -197,6 +227,11 @@ function ModalEntrega({ onClose, onSalvar }) {
       document.body.style.overflow = overflowAnterior;
     };
   }, [modalAssinaturaAberto]);
+
+  useEffect(() => {
+    if (!contextRef.current) return;
+    aplicarFerramentaNoContexto(contextRef.current, ferramentaAtiva);
+  }, [ferramentaAtiva]);
 
   const funcionarioSelecionado = useMemo(() => {
     return funcionarios.find((f) => Number(f.id) === Number(funcionario)) || null;
@@ -228,6 +263,7 @@ function ModalEntrega({ onClose, onSalvar }) {
     if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
+
     return {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
@@ -236,7 +272,9 @@ function ModalEntrega({ onClose, onSalvar }) {
 
   function startDrawing(event) {
     const ponto = getCoordenadas(event);
-    if (!ponto || !contextRef.current) return;
+    const ctx = contextRef.current;
+
+    if (!ponto || !ctx) return;
 
     event.preventDefault();
 
@@ -248,13 +286,18 @@ function ModalEntrega({ onClose, onSalvar }) {
       }
     }
 
-    contextRef.current.beginPath();
-    contextRef.current.moveTo(ponto.x, ponto.y);
-    contextRef.current.lineTo(ponto.x + 0.01, ponto.y + 0.01);
-    contextRef.current.stroke();
+    aplicarFerramentaNoContexto(ctx, ferramentaAtiva);
+
+    ctx.beginPath();
+    ctx.moveTo(ponto.x, ponto.y);
+    ctx.lineTo(ponto.x + 0.01, ponto.y + 0.01);
+    ctx.stroke();
+
+    if (ferramentaAtiva === "caneta") {
+      setAssinaturaVazia(false);
+    }
 
     setIsDrawing(true);
-    setAssinaturaVazia(false);
   }
 
   function draw(event) {
@@ -267,11 +310,13 @@ function ModalEntrega({ onClose, onSalvar }) {
 
     contextRef.current.lineTo(ponto.x, ponto.y);
     contextRef.current.stroke();
-    setAssinaturaVazia(false);
   }
 
   function finishDrawing(event) {
-    if (!contextRef.current) return;
+    const ctx = contextRef.current;
+    const canvas = canvasRef.current;
+
+    if (!ctx || !canvas) return;
 
     if (event?.target?.releasePointerCapture) {
       try {
@@ -281,12 +326,19 @@ function ModalEntrega({ onClose, onSalvar }) {
       }
     }
 
-    contextRef.current.closePath();
+    ctx.closePath();
     setIsDrawing(false);
 
-    const canvas = canvasRef.current;
-    if (canvas && !assinaturaVazia) {
-      setAssinaturaPreview(canvas.toDataURL("image/png"));
+    const vaziaAgora = canvasEstaEmBranco(canvas);
+    setAssinaturaVazia(vaziaAgora);
+
+    if (vaziaAgora) {
+      setAssinaturaPreview("");
+      assinaturaPreviewRef.current = "";
+    } else {
+      const imagem = canvas.toDataURL("image/png");
+      setAssinaturaPreview(imagem);
+      assinaturaPreviewRef.current = imagem;
     }
   }
 
@@ -310,7 +362,7 @@ function ModalEntrega({ onClose, onSalvar }) {
     ctx.restore();
 
     preencherCanvasBranco(ctx, largura, altura);
-    aplicarEstiloCaneta(ctx);
+    aplicarFerramentaNoContexto(ctx, ferramentaAtiva);
   }
 
   function adicionarItem() {
@@ -627,8 +679,7 @@ function ModalEntrega({ onClose, onSalvar }) {
                     Assinatura digital do colaborador
                   </label>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Abra a tela de assinatura para o colaborador assinar em tela
-                    cheia.
+                    Abra a tela de assinatura para o colaborador assinar.
                   </p>
                 </div>
 
@@ -682,7 +733,7 @@ function ModalEntrega({ onClose, onSalvar }) {
                           Nenhuma assinatura capturada
                         </div>
                         <div className="text-xs mt-1">
-                          Toque no botão acima para abrir a tela cheia
+                          Toque no botão acima para abrir a área de assinatura
                         </div>
                       </div>
                     </div>
@@ -718,94 +769,107 @@ function ModalEntrega({ onClose, onSalvar }) {
 
       {modalAssinaturaAberto && (
         <div className="fixed inset-0 z-[100] bg-white w-screen h-[100dvh] overflow-hidden">
-          <div
-            ref={canvasWrapperRef}
-            className="absolute inset-0 w-full h-full bg-white"
-          >
-            <canvas
-              ref={canvasRef}
-              onPointerDown={startDrawing}
-              onPointerMove={draw}
-              onPointerUp={finishDrawing}
-              onPointerLeave={finishDrawing}
-              onPointerCancel={finishDrawing}
-              className="block w-full h-full touch-none bg-white"
-            />
+          <div className="absolute inset-0 flex flex-col bg-white">
+            <div className="flex-1 min-h-0 px-3 pt-3 pb-32 sm:px-5 sm:pt-5 sm:pb-36 flex items-start justify-center">
+              <div
+                ref={canvasWrapperRef}
+                className="relative w-full max-w-6xl h-[34dvh] min-h-[200px] max-h-[280px] sm:h-[42dvh] sm:max-h-[340px] md:h-[50dvh] md:max-h-[420px] rounded-3xl border border-slate-300 bg-white shadow-sm overflow-hidden"
+              >
+                <canvas
+                  ref={canvasRef}
+                  onPointerDown={startDrawing}
+                  onPointerMove={draw}
+                  onPointerUp={finishDrawing}
+                  onPointerLeave={finishDrawing}
+                  onPointerCancel={finishDrawing}
+                  className="block w-full h-full touch-none bg-white"
+                />
 
-            {assinaturaVazia && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
-                <div className="text-center text-slate-300">
-                  <div className="text-5xl mb-3">✍️</div>
-                  <div className="text-lg sm:text-xl font-semibold">
-                    Assine aqui
+                {assinaturaVazia && (
+                  <div className="absolute inset-0 pointer-events-none flex items-start justify-center pt-8 sm:pt-10 px-6">
+                    <div className="text-center text-slate-300">
+                      <div className="text-5xl mb-3">✍️</div>
+                      <div className="text-lg sm:text-xl font-semibold">
+                        Assine aqui
+                      </div>
+                      <div className="text-sm mt-2">
+                        Área horizontal para assinatura
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm mt-2">
-                    Área máxima da tela para assinatura
-                  </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-
-          <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-3">
-            <div className="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl px-3 py-2 shadow-sm max-w-[70%]">
-              <p className="text-xs sm:text-sm text-slate-700 font-medium">
-                Tela cheia para assinatura
-              </p>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                Use o dedo, mouse ou caneta
-              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setModalAssinaturaAberto(false)}
-              className="shrink-0 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
-            >
-              Sair ✕
-            </button>
-          </div>
+            <div className="absolute bottom-3 left-3 right-3 z-10">
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3">
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setFerramentaAtiva("caneta")}
+                    className={`w-full px-3 py-3 rounded-xl border text-sm font-semibold transition ${
+                      ferramentaAtiva === "caneta"
+                        ? "bg-blue-700 text-white border-blue-700"
+                        : "bg-white text-slate-700 border-slate-300"
+                    }`}
+                  >
+                    ✍️ Escrever
+                  </button>
 
-          <div className="absolute bottom-3 left-3 right-3 z-10">
-            <div className="bg-white/92 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-xs sm:text-sm text-slate-600">
-                  {assinaturaVazia
-                    ? "Assinatura pendente"
-                    : "Assinatura capturada"}
-                </span>
+                  <button
+                    type="button"
+                    onClick={() => setFerramentaAtiva("borracha")}
+                    className={`w-full px-3 py-3 rounded-xl border text-sm font-semibold transition ${
+                      ferramentaAtiva === "borracha"
+                        ? "bg-slate-800 text-white border-slate-800"
+                        : "bg-white text-slate-700 border-slate-300"
+                    }`}
+                  >
+                    🩹 Borracha
+                  </button>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={limparAssinatura}
-                  className="px-3 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium"
-                >
-                  Limpar
-                </button>
-              </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs sm:text-sm text-slate-600">
+                    {assinaturaVazia
+                      ? "Assinatura pendente"
+                      : `Modo ativo: ${
+                          ferramentaAtiva === "caneta" ? "escrever" : "borracha"
+                        }`}
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModalAssinaturaAberto(false)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-medium"
-                >
-                  Voltar
-                </button>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalAssinaturaAberto(false)}
+                    className="w-full px-3 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-medium"
+                  >
+                    Sair
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (assinaturaVazia) {
-                      alert("Peça para o colaborador assinar antes de concluir.");
-                      return;
-                    }
-                    setModalAssinaturaAberto(false);
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-blue-700 text-white font-bold"
-                >
-                  Concluir
-                </button>
+                  <button
+                    type="button"
+                    onClick={limparAssinatura}
+                    className="w-full px-3 py-3 rounded-xl border border-red-200 bg-white text-red-600 font-medium"
+                  >
+                    Limpar tudo
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!assinaturaPreview) {
+                        alert("Peça para o colaborador assinar antes de concluir.");
+                        return;
+                      }
+                      setModalAssinaturaAberto(false);
+                    }}
+                    className="w-full px-3 py-3 rounded-xl bg-blue-700 text-white font-bold"
+                  >
+                    Concluir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
