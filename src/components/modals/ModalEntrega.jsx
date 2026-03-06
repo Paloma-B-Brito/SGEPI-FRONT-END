@@ -81,7 +81,7 @@ function aplicarEstiloCaneta(ctx) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.strokeStyle = "#0f172a";
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.4;
 }
 
 function preencherCanvasBranco(ctx, largura, altura) {
@@ -364,7 +364,6 @@ function ModalEntrega({ onClose, onSalvar }) {
 
     const entregaFinal = {
       id: Date.now(),
-
       idFuncionario: Number(funcionario),
       data_entrega: dataEntrega,
       assinatura_digital: assinaturaPreview,
@@ -394,7 +393,7 @@ function ModalEntrega({ onClose, onSalvar }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
           <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-2">
@@ -718,82 +717,78 @@ function ModalEntrega({ onClose, onSalvar }) {
       </div>
 
       {modalAssinaturaAberto && (
-        <div className="fixed inset-0 z-[80] bg-white flex flex-col">
-          <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-3 flex items-center justify-between">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                Assinatura do colaborador
-              </h3>
-              <p className="text-xs text-slate-500">
-                Esta área ocupa toda a tela para facilitar a assinatura no celular.
+        <div className="fixed inset-0 z-[100] bg-white w-screen h-[100dvh] overflow-hidden">
+          <div
+            ref={canvasWrapperRef}
+            className="absolute inset-0 w-full h-full bg-white"
+          >
+            <canvas
+              ref={canvasRef}
+              onPointerDown={startDrawing}
+              onPointerMove={draw}
+              onPointerUp={finishDrawing}
+              onPointerLeave={finishDrawing}
+              onPointerCancel={finishDrawing}
+              className="block w-full h-full touch-none bg-white"
+            />
+
+            {assinaturaVazia && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
+                <div className="text-center text-slate-300">
+                  <div className="text-5xl mb-3">✍️</div>
+                  <div className="text-lg sm:text-xl font-semibold">
+                    Assine aqui
+                  </div>
+                  <div className="text-sm mt-2">
+                    Área máxima da tela para assinatura
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-3">
+            <div className="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl px-3 py-2 shadow-sm max-w-[70%]">
+              <p className="text-xs sm:text-sm text-slate-700 font-medium">
+                Tela cheia para assinatura
+              </p>
+              <p className="text-[11px] sm:text-xs text-slate-500">
+                Use o dedo, mouse ou caneta
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setModalAssinaturaAberto(false)}
-              className="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 font-medium hover:bg-slate-100 transition"
+              className="shrink-0 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
             >
               Sair ✕
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 p-3 sm:p-4 flex flex-col bg-slate-100">
-            <div className="shrink-0 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="text-xs sm:text-sm text-slate-600">
-                Peça para o colaborador assinar no espaço abaixo usando o dedo,
-                mouse ou caneta.
+          <div className="absolute bottom-3 left-3 right-3 z-10">
+            <div className="bg-white/92 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-xs sm:text-sm text-slate-600">
+                  {assinaturaVazia
+                    ? "Assinatura pendente"
+                    : "Assinatura capturada"}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={limparAssinatura}
+                  className="px-3 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium"
+                >
+                  Limpar
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={limparAssinatura}
-                className="self-start sm:self-auto px-3 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium hover:bg-red-50 transition"
-              >
-                Limpar
-              </button>
-            </div>
-
-            <div className="flex-1 min-h-[320px] rounded-2xl border border-slate-300 bg-white overflow-hidden shadow-sm">
-              <div ref={canvasWrapperRef} className="relative w-full h-full">
-                <canvas
-                  ref={canvasRef}
-                  onPointerDown={startDrawing}
-                  onPointerMove={draw}
-                  onPointerUp={finishDrawing}
-                  onPointerLeave={finishDrawing}
-                  onPointerCancel={finishDrawing}
-                  className="block w-full h-full cursor-crosshair touch-none"
-                />
-
-                {assinaturaVazia && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center text-slate-300 px-4">
-                      <div className="text-4xl mb-3">✍️</div>
-                      <div className="text-base sm:text-lg font-semibold">
-                        Assine aqui
-                      </div>
-                      <div className="text-xs sm:text-sm mt-1">
-                        A área ocupa a tela toda para facilitar no celular
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="shrink-0 mt-3 flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
-              <div className="text-xs text-slate-500">
-                {assinaturaVazia
-                  ? "Assinatura pendente"
-                  : "Assinatura capturada"}
-              </div>
-
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setModalAssinaturaAberto(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-100 transition"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-medium"
                 >
                   Voltar
                 </button>
@@ -807,9 +802,9 @@ function ModalEntrega({ onClose, onSalvar }) {
                     }
                     setModalAssinaturaAberto(false);
                   }}
-                  className="px-4 py-2 rounded-lg bg-blue-700 text-white font-bold hover:bg-blue-800 transition"
+                  className="w-full px-4 py-3 rounded-xl bg-blue-700 text-white font-bold"
                 >
-                  Concluir assinatura
+                  Concluir
                 </button>
               </div>
             </div>
