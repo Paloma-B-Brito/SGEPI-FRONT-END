@@ -12,17 +12,27 @@ import Administracao from "./pages/Administracao";
 import Departamentos from "./pages/Departamentos";
 
 function App() {
-  const [usuario, setUsuario] = useState(null); 
-  const [paginaAtual, setPaginaAtual] = useState("Dashboard");
+  const [usuario, setUsuario] = useState(null);
+  const [paginaAtual, setPaginaAtual] = useState("Administracao");
+
+  const handleLogin = (dadosUsuario) => {
+    setUsuario(dadosUsuario);
+    setPaginaAtual("Administracao");
+  };
+
+  const handleLogout = () => {
+    setUsuario(null);
+    setPaginaAtual("Administracao");
+  };
 
   if (!usuario) {
-    return <Login onLogin={setUsuario} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   const renderizarPagina = () => {
     switch (paginaAtual) {
       case "Dashboard":
-        return <Dashboard usuarioLogado={usuario} />; 
+        return <Dashboard usuarioLogado={usuario} />;
       case "Estoque":
         return <Estoque />;
       case "Entradas":
@@ -40,19 +50,19 @@ function App() {
       case "Administracao":
         return <Administracao />;
       default:
-        return <Dashboard usuarioLogado={usuario} />;
+        return <Administracao />;
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      <Header 
-        paginaAtual={paginaAtual} 
-        setPagina={setPaginaAtual} 
-        onLogout={() => setUsuario(null)} 
-        usuario={usuario} 
+      <Header
+        paginaAtual={paginaAtual}
+        setPagina={setPaginaAtual}
+        onLogout={handleLogout}
+        usuario={usuario}
       />
-      
+
       <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         {renderizarPagina()}
       </main>
