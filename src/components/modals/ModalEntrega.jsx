@@ -179,29 +179,6 @@ function gerarAssinaturaHorizontal(canvasOriginal) {
   preencherCanvasBranco(ctxRecorte, sw, sh);
   ctxRecorte.drawImage(canvasOriginal, sx, sy, sw, sh, 0, 0, sw, sh);
 
-  let canvasBase = canvasRecorte;
-
-  if (sh > sw * 1.05) {
-    const canvasRotacionado = document.createElement("canvas");
-    canvasRotacionado.width = sh;
-    canvasRotacionado.height = sw;
-
-    const ctxRot = canvasRotacionado.getContext("2d");
-    if (!ctxRot) return "";
-
-    preencherCanvasBranco(
-      ctxRot,
-      canvasRotacionado.width,
-      canvasRotacionado.height
-    );
-
-    ctxRot.translate(canvasRotacionado.width / 2, canvasRotacionado.height / 2);
-    ctxRot.rotate(-Math.PI / 2);
-    ctxRot.drawImage(canvasRecorte, -sw / 2, -sh / 2);
-
-    canvasBase = canvasRotacionado;
-  }
-
   const canvasFinal = document.createElement("canvas");
   canvasFinal.width = 1400;
   canvasFinal.height = 420;
@@ -218,17 +195,17 @@ function gerarAssinaturaHorizontal(canvasOriginal) {
   const areaUtilAltura = canvasFinal.height - margemY * 2;
 
   const escala = Math.min(
-    areaUtilLargura / canvasBase.width,
-    areaUtilAltura / canvasBase.height
+    areaUtilLargura / canvasRecorte.width,
+    areaUtilAltura / canvasRecorte.height
   );
 
-  const larguraDesenho = canvasBase.width * escala;
-  const alturaDesenho = canvasBase.height * escala;
+  const larguraDesenho = canvasRecorte.width * escala;
+  const alturaDesenho = canvasRecorte.height * escala;
 
   const dx = (canvasFinal.width - larguraDesenho) / 2;
   const dy = (canvasFinal.height - alturaDesenho) / 2;
 
-  ctxFinal.drawImage(canvasBase, dx, dy, larguraDesenho, alturaDesenho);
+  ctxFinal.drawImage(canvasRecorte, dx, dy, larguraDesenho, alturaDesenho);
 
   return canvasFinal.toDataURL("image/png");
 }
@@ -352,7 +329,7 @@ function ModalEntrega({ onClose, onSalvar }) {
       window.removeEventListener("resize", configurarCanvas);
       document.body.style.overflow = overflowAnterior;
     };
-  }, [modalAssinaturaAberto]);
+  }, [modalAssinaturaAberto, painelFerramentasAberto]);
 
   useEffect(() => {
     if (!contextRef.current) return;
@@ -843,7 +820,7 @@ function ModalEntrega({ onClose, onSalvar }) {
                     type="button"
                     onClick={() => {
                       setModalAssinaturaAberto(true);
-                      setPainelFerramentasAberto(false);
+                      setPainelFerramentasAberto(true);
                     }}
                     className="px-4 py-2 bg-blue-700 text-white text-sm font-bold rounded-lg hover:bg-blue-800 transition"
                   >
@@ -916,9 +893,14 @@ function ModalEntrega({ onClose, onSalvar }) {
       </div>
 
       {modalAssinaturaAberto && (
-        <div className="fixed inset-0 z-[100] bg-white w-screen h-[100dvh] overflow-hidden">
-          <div className="absolute inset-0 bg-white">
-            <div ref={canvasWrapperRef} className="absolute inset-0">
+        <div className="fixed inset-0 z-[100] bg-slate-100 overflow-hidden">
+          <div className="absolute inset-0 bg-slate-100">
+            <div
+              ref={canvasWrapperRef}
+              className={`absolute inset-y-0 left-0 ${
+                painelFerramentasAberto ? "right-[96px] sm:right-[112px]" : "right-0"
+              }`}
+            >
               <canvas
                 ref={canvasRef}
                 onPointerDown={startDrawing}
@@ -929,104 +911,113 @@ function ModalEntrega({ onClose, onSalvar }) {
                 className="block w-full h-full touch-none bg-white"
               />
 
-              {assinaturaVazia && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6 pb-24">
-                  <div className="text-center text-slate-300">
-                    <div className="text-6xl mb-3">✍️</div>
-                    <div className="text-xl sm:text-2xl font-semibold">
-                      Assine em qualquer área da tela
-                    </div>
-                    <div className="text-sm sm:text-base mt-2">
-                      Campo livre, amplo e horizontal para assinatura
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div className="absolute top-4 left-4 pointer-events-none">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2 shadow-sm">
+                <div className="bg-white/85 backdrop-blur-sm rounded-xl px-3 py-2 shadow-sm border border-slate-200">
                   <h3 className="text-sm sm:text-base font-bold text-slate-800">
                     Assinatura do colaborador
                   </h3>
                   <p className="text-[11px] sm:text-xs text-slate-500">
-                    Assine livremente pela tela.
+                    Assine na horizontal, seguindo a linha.
                   </p>
                 </div>
               </div>
+
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
+                <div className="w-full max-w-5xl">
+                  <div className="flex items-center gap-3 text-slate-300 mb-2">
+                    <span className="text-xs sm:text-sm font-medium uppercase tracking-wide">
+                      assine aqui
+                    </span>
+                    <span className="text-lg">→</span>
+                  </div>
+
+                  <div className="border-b-2 border-dashed border-slate-300" />
+                </div>
+              </div>
+
+              {assinaturaVazia && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
+                  <div className="text-center text-slate-300 -mt-16">
+                    <div className="text-6xl mb-3">✍️</div>
+                    <div className="text-xl sm:text-2xl font-semibold">
+                      Assine na direção horizontal
+                    </div>
+                    <div className="text-sm sm:text-base mt-2">
+                      O menu ao lado indica a posição correta da assinatura
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {painelFerramentasAberto ? (
-              <div className="absolute bottom-3 left-3 right-3 z-10">
-                <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFerramentaAtiva("caneta")}
-                      className={`px-3 py-2 rounded-lg border text-xs sm:text-sm font-semibold transition ${
-                        ferramentaAtiva === "caneta"
-                          ? "bg-blue-700 text-white border-blue-700"
-                          : "bg-white text-slate-700 border-slate-300"
-                      }`}
-                    >
-                      ✍️ Escrever
-                    </button>
+              <div className="absolute top-0 right-0 bottom-0 w-[96px] sm:w-[112px] bg-white border-l border-slate-200 shadow-lg z-10 flex flex-col items-center py-4 gap-2">
+                <div className="text-[10px] sm:text-[11px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
+                  Menu
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setFerramentaAtiva("borracha")}
-                      className={`px-3 py-2 rounded-lg border text-xs sm:text-sm font-semibold transition ${
-                        ferramentaAtiva === "borracha"
-                          ? "bg-slate-800 text-white border-slate-800"
-                          : "bg-white text-slate-700 border-slate-300"
-                      }`}
-                    >
-                      🩹 Borracha
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => setFerramentaAtiva("caneta")}
+                  className={`w-[76px] sm:w-[88px] px-2 py-2 rounded-xl border text-[11px] sm:text-xs font-semibold transition ${
+                    ferramentaAtiva === "caneta"
+                      ? "bg-blue-700 text-white border-blue-700"
+                      : "bg-white text-slate-700 border-slate-300"
+                  }`}
+                >
+                  ✍️
+                  <div>Escrever</div>
+                </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPainelFerramentasAberto(false)}
-                      className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-medium hover:bg-slate-50 transition"
-                    >
-                      Ocultar menu
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => setFerramentaAtiva("borracha")}
+                  className={`w-[76px] sm:w-[88px] px-2 py-2 rounded-xl border text-[11px] sm:text-xs font-semibold transition ${
+                    ferramentaAtiva === "borracha"
+                      ? "bg-slate-800 text-white border-slate-800"
+                      : "bg-white text-slate-700 border-slate-300"
+                  }`}
+                >
+                  🩹
+                  <div>Borracha</div>
+                </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setModalAssinaturaAberto(false)}
-                      className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-medium hover:bg-slate-50 transition"
-                    >
-                      Sair
-                    </button>
+                <button
+                  type="button"
+                  onClick={limparAssinatura}
+                  className="w-[76px] sm:w-[88px] px-2 py-2 rounded-xl border border-red-200 bg-white text-red-600 text-[11px] sm:text-xs font-semibold hover:bg-red-50 transition"
+                >
+                  Limpar
+                </button>
 
-                    <button
-                      type="button"
-                      onClick={limparAssinatura}
-                      className="px-3 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-xs sm:text-sm font-medium hover:bg-red-50 transition"
-                    >
-                      Limpar tudo
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => setPainelFerramentasAberto(false)}
+                  className="w-[76px] sm:w-[88px] px-2 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold hover:bg-slate-50 transition"
+                >
+                  Ocultar
+                </button>
 
-                    <button
-                      type="button"
-                      onClick={concluirAssinatura}
-                      className="px-3 py-2 rounded-lg bg-blue-700 text-white text-xs sm:text-sm font-bold hover:bg-blue-800 transition"
-                    >
-                      Concluir
-                    </button>
-                  </div>
+                <div className="mt-auto flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalAssinaturaAberto(false)}
+                    className="w-[76px] sm:w-[88px] px-2 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold hover:bg-slate-50 transition"
+                  >
+                    Sair
+                  </button>
 
-                  <div className="mt-2 text-[11px] sm:text-xs text-slate-500">
-                    {assinaturaVazia
-                      ? "Assinatura pendente."
-                      : `Modo ativo: ${
-                          ferramentaAtiva === "caneta" ? "escrever" : "borracha"
-                        }.`}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={concluirAssinatura}
+                    className="w-[76px] sm:w-[88px] px-2 py-2 rounded-xl bg-blue-700 text-white text-[11px] sm:text-xs font-bold hover:bg-blue-800 transition"
+                  >
+                    Concluir
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="absolute bottom-4 right-4 z-10">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
                 <button
                   type="button"
                   onClick={() => setPainelFerramentasAberto(true)}
