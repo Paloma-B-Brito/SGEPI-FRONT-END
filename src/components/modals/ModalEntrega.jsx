@@ -188,7 +188,7 @@ function ModalEntrega({ onClose, onSalvar }) {
 
       const ratio = window.devicePixelRatio || 1;
       const largura = Math.max(wrapper.clientWidth, 320);
-      const altura = Math.max(wrapper.clientHeight, 220);
+      const altura = Math.max(wrapper.clientHeight, 320);
 
       canvas.width = largura * ratio;
       canvas.height = altura * ratio;
@@ -227,7 +227,7 @@ function ModalEntrega({ onClose, onSalvar }) {
       window.removeEventListener("resize", configurarCanvas);
       document.body.style.overflow = overflowAnterior;
     };
-  }, [modalAssinaturaAberto, ferramentaAtiva]);
+  }, [modalAssinaturaAberto]);
 
   useEffect(() => {
     if (!contextRef.current) return;
@@ -783,62 +783,48 @@ function ModalEntrega({ onClose, onSalvar }) {
 
       {modalAssinaturaAberto && (
         <div className="fixed inset-0 z-[100] bg-white w-screen h-[100dvh] overflow-hidden">
-          <div className="absolute inset-0 flex flex-col bg-white">
-            <div className="px-3 pt-3 sm:px-5 sm:pt-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                    Assinatura do colaborador
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    Área grande e horizontal para assinatura.
-                  </p>
-                </div>
+          <div className="absolute inset-0 bg-white">
+            <div
+              ref={canvasWrapperRef}
+              className="absolute inset-0"
+            >
+              <canvas
+                ref={canvasRef}
+                onPointerDown={startDrawing}
+                onPointerMove={draw}
+                onPointerUp={finishDrawing}
+                onPointerLeave={finishDrawing}
+                onPointerCancel={finishDrawing}
+                className="block w-full h-full touch-none bg-white"
+              />
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPainelFerramentasAberto((prev) => !prev)
-                  }
-                  className="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
-                >
-                  {painelFerramentasAberto ? "Ocultar opções" : "Opções"}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0 px-3 pt-3 pb-24 sm:px-5 sm:pt-5 sm:pb-28 flex items-center justify-center">
-              <div
-                ref={canvasWrapperRef}
-                className="relative w-full max-w-7xl h-[50dvh] min-h-[280px] max-h-[460px] sm:h-[56dvh] md:h-[60dvh] rounded-3xl border border-slate-300 bg-white shadow-sm overflow-hidden"
-              >
-                <canvas
-                  ref={canvasRef}
-                  onPointerDown={startDrawing}
-                  onPointerMove={draw}
-                  onPointerUp={finishDrawing}
-                  onPointerLeave={finishDrawing}
-                  onPointerCancel={finishDrawing}
-                  className="block w-full h-full touch-none bg-white"
-                />
-
-                {assinaturaVazia && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
-                    <div className="text-center text-slate-300">
-                      <div className="text-5xl mb-3">✍️</div>
-                      <div className="text-lg sm:text-xl font-semibold">
-                        Assine aqui
-                      </div>
-                      <div className="text-sm mt-2">
-                        Campo grande e horizontal para assinatura
-                      </div>
+              {assinaturaVazia && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6 pb-24">
+                  <div className="text-center text-slate-300">
+                    <div className="text-6xl mb-3">✍️</div>
+                    <div className="text-xl sm:text-2xl font-semibold">
+                      Assine em qualquer área da tela
+                    </div>
+                    <div className="text-sm sm:text-base mt-2">
+                      Campo livre, amplo e horizontal para assinatura
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+
+              <div className="absolute top-4 left-4 pointer-events-none">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2 shadow-sm">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-800">
+                    Assinatura do colaborador
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-slate-500">
+                    Assine livremente pela tela.
+                  </p>
+                </div>
               </div>
             </div>
 
-            {painelFerramentasAberto && (
+            {painelFerramentasAberto ? (
               <div className="absolute bottom-3 left-3 right-3 z-10">
                 <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -864,6 +850,14 @@ function ModalEntrega({ onClose, onSalvar }) {
                       }`}
                     >
                       🩹 Borracha
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPainelFerramentasAberto(false)}
+                      className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-medium hover:bg-slate-50 transition"
+                    >
+                      Ocultar menu
                     </button>
 
                     <button
@@ -900,9 +894,7 @@ function ModalEntrega({ onClose, onSalvar }) {
                   </div>
                 </div>
               </div>
-            )}
-
-            {!painelFerramentasAberto && (
+            ) : (
               <div className="absolute bottom-4 right-4 z-10">
                 <button
                   type="button"
