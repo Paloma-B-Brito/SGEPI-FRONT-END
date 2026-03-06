@@ -1,126 +1,56 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { api } from "../../services/api";
 
-const categoriasDisponiveis = [
-  { id: 1, nome: "Proteção da Cabeça (Capacetes/Toucas)" },
-  { id: 2, nome: "Proteção Auditiva (Protetores/Abafadores)" },
-  { id: 3, nome: "Proteção Respiratória (Máscaras/Filtros)" },
-  { id: 4, nome: "Proteção Visual (Óculos/Viseiras)" },
-  { id: 5, nome: "Proteção de Mãos (Luvas)" },
-  { id: 6, nome: "Proteção de Pés (Botinas/Sapatos)" },
-  { id: 7, nome: "Proteção contra Quedas (Cintos)" },
+const tiposProtecaoDisponiveis = [
+  { id: 1, nome: "Proteção da Cabeça" },
+  { id: 2, nome: "Proteção Auditiva" },
+  { id: 3, nome: "Proteção Respiratória" },
+  { id: 4, nome: "Proteção Visual" },
+  { id: 5, nome: "Proteção de Mãos" },
+  { id: 6, nome: "Proteção de Pés" },
+  { id: 7, nome: "Proteção contra Quedas" },
 ];
 
 function ModalNovoEpi({ onClose, onSalvar }) {
   const [nome, setNome] = useState("");
-  const [ca, setCa] = useState("");
+  const [idTipoProtecao, setIdTipoProtecao] = useState("");
   const [fabricante, setFabricante] = useState("");
-  const [preco, setPreco] = useState("");
-  const [lote, setLote] = useState("");
-  const [quantidade, setQuantidade] = useState("");
-  const [validade, setValidade] = useState("");
-  const [dataChegada, setDataChegada] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [ca, setCa] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [validadeCA, setValidadeCA] = useState("");
+  const [alertaMinimo, setAlertaMinimo] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  const [tamanhos, setTamanhos] = useState([
-    { id: Date.now(), tamanho: "", quantidade: "" },
-  ]);
-
-  const quantidadeTotalTamanhos = useMemo(() => {
-    return tamanhos.reduce((acc, item) => {
-      const qtd = parseInt(item.quantidade || 0, 10);
-      return acc + (Number.isNaN(qtd) ? 0 : qtd);
-    }, 0);
-  }, [tamanhos]);
-
-  const adicionarLinhaTamanho = () => {
-    setTamanhos((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), tamanho: "", quantidade: "" },
-    ]);
-  };
-
-  const removerLinhaTamanho = (id) => {
-    setTamanhos((prev) => {
-      if (prev.length === 1) {
-        return [{ ...prev[0], tamanho: "", quantidade: "" }];
-      }
-      return prev.filter((item) => item.id !== id);
-    });
-  };
-
-  const atualizarLinhaTamanho = (id, campo, valor) => {
-    setTamanhos((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, [campo]: valor } : item
-      )
-    );
-  };
-
   const salvarEpi = async () => {
-    if (!nome || !categoria || !preco) {
-      alert("Por favor, preencha os campos obrigatórios (*).");
+    if (!nome.trim() || !idTipoProtecao) {
+      alert("Preencha os campos obrigatórios.");
       return;
     }
 
-    const tamanhosValidos = tamanhos.filter(
-      (item) => item.tamanho.trim() || item.quantidade !== ""
-    );
-
-    const quantidadeFinal =
-      quantidade !== ""
-        ? parseInt(quantidade, 10)
-        : quantidadeTotalTamanhos;
-
-    if (!quantidadeFinal && quantidadeFinal !== 0) {
-      alert("Informe a quantidade total ou preencha a tabela de tamanhos.");
-      return;
-    }
-
-    if (tamanhosValidos.some((item) => !item.tamanho.trim() || item.quantidade === "")) {
-      alert("Preencha corretamente o tamanho e a quantidade em todas as linhas da tabela.");
-      return;
-    }
-
-    const descricaoMontada = [
-      fabricante ? `Fabricante: ${fabricante}` : null,
-      ca ? `CA: ${ca}` : null,
-      tamanhosValidos.length
-        ? `Tamanhos: ${tamanhosValidos
-            .map((item) => `${item.tamanho} (${item.quantidade})`)
-            .join(", ")}`
-        : null,
-    ]
-      .filter(Boolean)
-      .join(" | ");
-
-    const novoProduto = {
-      nome: nome,
-      descricao: descricaoMontada,
-      ca: ca,
-      fabricante: fabricante,
-      tamanhos: tamanhosValidos.map((item) => ({
-        tamanho: item.tamanho.trim(),
-        quantidade: parseInt(item.quantidade, 10),
-      })),
-      preco: parseFloat(preco),
-      lote: lote,
-      quantidade: quantidadeFinal,
-      validade: validade ? `${validade}T00:00:00Z` : null,
-      categoria: parseInt(categoria, 10),
-      dataChegada: dataChegada ? `${dataChegada}T00:00:00Z` : new Date().toISOString(),
+    const novoEpi = {
+      nome: nome.trim(),
+      idTipoProtecao: Number(idTipoProtecao),
+      fabricante: fabricante.trim() || null,
+      CA: ca.trim() || null,
+      descricao: descricao.trim() || null,
+      validade_CA: validadeCA ? `${validadeCA}T00:00:00Z` : null,
+      alerta_minimo: alertaMinimo !== "" ? Number(alertaMinimo) : 0,
     };
 
     setCarregando(true);
 
     try {
-      await api.post("/produto", novoProduto);
-      alert("Produto guardado com sucesso no banco de dados!");
+      await api.post("/epi", novoEpi);
       if (onSalvar) onSalvar();
       onClose();
     } catch (erro) {
-      alert("Não foi possível conectar ao servidor ou houve um erro ao guardar.");
+      try {
+        await api.post("/epis", novoEpi);
+        if (onSalvar) onSalvar();
+        onClose();
+      } catch (erro2) {
+        alert("Não foi possível salvar o EPI no servidor.");
+      }
     } finally {
       setCarregando(false);
     }
@@ -128,17 +58,28 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-slate-200 p-2 rounded-lg text-slate-700">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
             </span>
-            <h2 className="text-xl font-bold text-slate-800">
-              Cadastrar Novo Produto (EPI)
-            </h2>
+
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">
+                Cadastrar Novo EPI
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Cadastro base conforme a tabela <b>epi</b>.
+              </p>
+            </div>
           </div>
 
           <button
@@ -152,17 +93,17 @@ function ModalNovoEpi({ onClose, onSalvar }) {
         <div className="p-6 overflow-y-auto space-y-6">
           <div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-              Identificação
+              Identificação do EPI
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome do Produto <span className="text-red-500">*</span>
+                  Nome do EPI <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  placeholder="Ex: Bota de Segurança de Couro"
+                  placeholder="Ex: Bota de Segurança"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                 />
@@ -170,17 +111,17 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoria <span className="text-red-500">*</span>
+                  Tipo de Proteção <span className="text-red-500">*</span>
                 </label>
                 <select
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white"
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
+                  value={idTipoProtecao}
+                  onChange={(e) => setIdTipoProtecao(e.target.value)}
                 >
                   <option value="">Selecione...</option>
-                  {categoriasDisponiveis.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
+                  {tiposProtecaoDisponiveis.map((tipo) => (
+                    <option key={tipo.id} value={tipo.id}>
+                      {tipo.nome}
                     </option>
                   ))}
                 </select>
@@ -212,13 +153,28 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lote
+                  Alerta mínimo
                 </label>
                 <input
+                  type="number"
+                  min="0"
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  placeholder="Ex: LOTE-2026A"
-                  value={lote}
-                  onChange={(e) => setLote(e.target.value)}
+                  placeholder="Ex: 10"
+                  value={alertaMinimo}
+                  onChange={(e) => setAlertaMinimo(e.target.value)}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descrição
+                </label>
+                <textarea
+                  rows={3}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none"
+                  placeholder="Descreva o EPI, finalidade ou observações importantes..."
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
                 />
               </div>
             </div>
@@ -226,139 +182,23 @@ function ModalNovoEpi({ onClose, onSalvar }) {
 
           <div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-              Tamanhos do EPI
+              Controle do Certificado
             </h3>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-slate-600">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-semibold">Tamanho</th>
-                      <th className="text-left px-4 py-3 font-semibold">Quantidade</th>
-                      <th className="text-center px-4 py-3 font-semibold w-[120px]">Ação</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {tamanhos.map((item) => (
-                      <tr key={item.id} className="border-t border-gray-200">
-                        <td className="px-4 py-3">
-                          <input
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="Ex: P, M, G, 38, 40, 42"
-                            value={item.tamanho}
-                            onChange={(e) =>
-                              atualizarLinhaTamanho(item.id, "tamanho", e.target.value)
-                            }
-                          />
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <input
-                            type="number"
-                            min="0"
-                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                            placeholder="0"
-                            value={item.quantidade}
-                            onChange={(e) =>
-                              atualizarLinhaTamanho(item.id, "quantidade", e.target.value)
-                            }
-                          />
-                        </td>
-
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removerLinhaTamanho(item.id)}
-                            className="text-red-500 hover:text-red-700 font-bold text-xs underline"
-                          >
-                            Remover
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="bg-slate-50 px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={adicionarLinhaTamanho}
-                  className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition text-sm w-full sm:w-auto"
-                >
-                  + Adicionar tamanho
-                </button>
-
-                <div className="text-sm text-gray-600">
-                  Total pelos tamanhos:{" "}
-                  <span className="font-bold text-slate-800">{quantidadeTotalTamanhos}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-              Controle e Valores
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantidade Total
+                  Validade do CA
                 </label>
                 <input
-                  type="number"
-                  min="0"
+                  type="date"
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  placeholder="Se quiser, informe manualmente"
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(e.target.value)}
+                  value={validadeCA}
+                  onChange={(e) => setValidadeCA(e.target.value)}
                 />
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Se deixar em branco, será usada a soma da tabela de tamanhos.
+                  Esta data será salva no campo <b>validade_CA</b>.
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Preço Unit. (€) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  placeholder="0.00"
-                  value={preco}
-                  onChange={(e) => setPreco(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data de Chegada
-                </label>
-                <input
-                  type="date"
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  value={dataChegada}
-                  onChange={(e) => setDataChegada(e.target.value)}
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Validade do Produto / CA
-                </label>
-                <input
-                  type="date"
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  value={validade}
-                  onChange={(e) => setValidade(e.target.value)}
-                />
               </div>
             </div>
           </div>
@@ -381,7 +221,7 @@ function ModalNovoEpi({ onClose, onSalvar }) {
             }`}
           >
             <span>{carregando ? "⏳" : "💾"}</span>
-            {carregando ? "A guardar..." : "Salvar Produto"}
+            {carregando ? "Salvando..." : "Salvar EPI"}
           </button>
         </div>
       </div>
