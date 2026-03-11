@@ -27,6 +27,31 @@ const mockEpis = [
     idTipoProtecao: 4,
     alerta_minimo: 20,
   },
+  {
+    id: 3,
+    nome: "Luva de Raspa",
+    fabricante: "Danny",
+    CA: "90876",
+    descricao: "Luva para proteção mecânica",
+    validade_CA: "2028-10-15T00:00:00Z",
+    idTipoProtecao: 2,
+    alerta_minimo: 15,
+  },
+];
+
+const mockTamanhos = [
+  { id: 7, tamanho: "38" },
+  { id: 8, tamanho: "39" },
+  { id: 9, tamanho: "Único" },
+  { id: 10, tamanho: "M" },
+  { id: 11, tamanho: "G" },
+];
+
+const mockFuncionarios = [
+  { id: 1, nome: "João Silva", matricula: "483920" },
+  { id: 2, nome: "Maria Santos", matricula: "739104" },
+  { id: 3, nome: "Carlos Oliveira", matricula: "102938" },
+  { id: 4, nome: "Ana Pereira", matricula: "998877" },
 ];
 
 const mockEntradas = [
@@ -56,20 +81,54 @@ const mockEntradas = [
     lote: "OCULOS-003",
     valor_unitario: 15.5,
   },
+  {
+    id: 103,
+    idEpi: 3,
+    idTamanho: 10,
+    idFornecedor: 1,
+    data_entrada: "2026-03-03",
+    quantidade: 40,
+    quantidadeAtual: 12,
+    data_fabricacao: "2026-02-10",
+    data_validade: "2028-08-20",
+    lote: "LUVA-009",
+    valor_unitario: 8.9,
+  },
+  {
+    id: 104,
+    idEpi: 3,
+    idTamanho: 11,
+    idFornecedor: 1,
+    data_entrada: "2026-03-03",
+    quantidade: 35,
+    quantidadeAtual: 9,
+    data_fabricacao: "2026-02-10",
+    data_validade: "2028-08-20",
+    lote: "LUVA-010",
+    valor_unitario: 9.5,
+  },
 ];
+
+const hojeMock = (() => {
+  const data = new Date();
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+})();
 
 const mockEntregas = [
   {
     id: 201,
     idFuncionario: 1,
-    data_entrega: new Date().toISOString().split("T")[0],
+    data_entrega: hojeMock,
     assinatura: null,
     token_validacao: null,
   },
   {
     id: 202,
     idFuncionario: 2,
-    data_entrega: new Date().toISOString().split("T")[0],
+    data_entrega: hojeMock,
     assinatura: null,
     token_validacao: null,
   },
@@ -80,6 +139,13 @@ const mockEntregas = [
     assinatura: null,
     token_validacao: null,
   },
+];
+
+const mockItensEntregues = [
+  { id: "ie1", idEntrega: 201, idEpi: 1, idTamanho: 7, quantidade: 1 },
+  { id: "ie2", idEntrega: 201, idEpi: 3, idTamanho: 10, quantidade: 2 },
+  { id: "ie3", idEntrega: 202, idEpi: 2, idTamanho: 9, quantidade: 1 },
+  { id: "ie4", idEntrega: 203, idEpi: 3, idTamanho: 11, quantidade: 1 },
 ];
 
 const mockDevolucoes = [
@@ -117,6 +183,37 @@ async function buscarPrimeiraLista(rotas, fallback = []) {
   return fallback;
 }
 
+function obterHojeISO() {
+  const data = new Date();
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function formatarData(data) {
+  if (!data) return "--";
+  const valor = String(data).substring(0, 10);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const [ano, mes, dia] = valor.split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
+
+  const dataObj = new Date(data);
+  if (Number.isNaN(dataObj.getTime())) return "--";
+  return dataObj.toLocaleDateString("pt-BR");
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function normalizarEpi(item) {
   return {
     id: Number(item?.id ?? 0),
@@ -125,92 +222,287 @@ function normalizarEpi(item) {
   };
 }
 
+function normalizarTamanho(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    tamanho: String(item?.tamanho ?? ""),
+  };
+}
+
+function normalizarFuncionario(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    nome: item?.nome ?? "",
+    matricula: String(item?.matricula ?? ""),
+  };
+}
+
 function normalizarEntrada(item) {
   return {
     id: Number(item?.id ?? 0),
     idEpi: Number(
       item?.idEpi ??
-        item?.epi_id ??
-        item?.epiId ??
-        item?.id_epi ??
-        item?.idProduto ??
-        item?.produto_id ??
-        0
+      item?.epi_id ??
+      item?.epiId ??
+      item?.id_epi ??
+      item?.idProduto ??
+      item?.produto_id ??
+      0
+    ),
+    idTamanho: Number(
+      item?.idTamanho ??
+      item?.tamanho_id ??
+      item?.tamanhoId ??
+      item?.id_tamanho ??
+      0
     ),
     quantidade: Number(item?.quantidade ?? 0),
     quantidadeAtual: Number(
       item?.quantidadeAtual ??
-        item?.quantidade_atual ??
-        item?.estoqueAtual ??
-        item?.estoque_atual ??
-        item?.quantidade ??
-        0
+      item?.quantidade_atual ??
+      item?.estoqueAtual ??
+      item?.estoque_atual ??
+      item?.quantidade ??
+      0
     ),
-    valor_unitario: Number(item?.valor_unitario ?? item?.valorUnitario ?? item?.preco ?? 0),
+    valor_unitario: Number(
+      item?.valor_unitario ?? item?.valorUnitario ?? item?.preco ?? 0
+    ),
     data_entrada: item?.data_entrada ?? item?.dataEntrada ?? "",
+    epiNome: item?.epiNome ?? item?.epi_nome ?? "",
+    tamanhoTexto: item?.tamanho ?? item?.tamanhoTexto ?? "",
+    lote: item?.lote ?? "",
   };
 }
 
 function normalizarEntrega(item) {
   return {
     id: Number(item?.id ?? 0),
-    data_entrega:
-      item?.data_entrega ??
-      item?.dataEntrega ??
-      item?.data ??
-      "",
+    idFuncionario: Number(
+      item?.idFuncionario ??
+      item?.funcionario_id ??
+      item?.funcionarioId ??
+      item?.funcionario?.id ??
+      item?.id_funcionario ??
+      0
+    ),
+    data_entrega: item?.data_entrega ?? item?.dataEntrega ?? item?.data ?? "",
+    assinatura: item?.assinatura ?? null,
+    token_validacao: item?.token_validacao ?? item?.tokenValidacao ?? null,
+  };
+}
+
+function normalizarItemEntregue(item) {
+  return {
+    id: item?.id ?? Date.now() + Math.random(),
+    idEntrega: Number(
+      item?.idEntrega ??
+      item?.entrega_id ??
+      item?.entregaId ??
+      item?.id_entrega ??
+      0
+    ),
+    idEpi: Number(
+      item?.idEpi ??
+      item?.epi_id ??
+      item?.epiId ??
+      item?.id_epi ??
+      item?.produto_id ??
+      0
+    ),
+    idTamanho: Number(
+      item?.idTamanho ??
+      item?.tamanho_id ??
+      item?.tamanhoId ??
+      item?.id_tamanho ??
+      0
+    ),
+    quantidade: Number(item?.quantidade ?? 0),
+    epiNome: item?.epiNome ?? item?.epi_nome ?? "",
+    tamanhoTexto: item?.tamanho ?? item?.tamanhoTexto ?? "",
   };
 }
 
 function normalizarDevolucao(item) {
   return {
     id: Number(item?.id ?? 0),
-    data_devolucao:
-      item?.data_devolucao ??
-      item?.dataDevolucao ??
-      item?.data ??
-      "",
+    data_devolucao: item?.data_devolucao ?? item?.dataDevolucao ?? item?.data ?? "",
   };
+}
+
+function ModalDetalhesDashboard({
+  aberto,
+  titulo,
+  subtitulo,
+  icon,
+  colunas = [],
+  dados = [],
+  tipo = "tabela",
+  onClose,
+}) {
+  if (!aberto) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-200 animate-fade-in">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-5 md:px-6 py-4 md:py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">
+                  {icon}
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="text-lg md:text-xl font-bold truncate">{titulo}</h3>
+                  <p className="text-sm text-slate-300 mt-1">{subtitulo}</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-96px)]">
+          {dados.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-500">
+              Nenhum registro encontrado.
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
+                    <tr>
+                      {colunas.map((coluna) => (
+                        <th key={coluna.key} className="p-4 font-semibold whitespace-nowrap">
+                          {coluna.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {dados.map((item, index) => (
+                      <tr key={item.id ?? index} className="hover:bg-gray-50 transition">
+                        {colunas.map((coluna) => (
+                          <td
+                            key={`${coluna.key}-${item.id ?? index}`}
+                            className="p-4 text-sm text-gray-700 align-top"
+                          >
+                            {typeof coluna.render === "function"
+                              ? coluna.render(item)
+                              : item[coluna.key]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {dados.map((item, index) => (
+                  <div
+                    key={item.id ?? index}
+                    className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4"
+                  >
+                    <div className="space-y-2">
+                      {colunas.map((coluna) => (
+                        <div
+                          key={`${coluna.key}-${item.id ?? index}`}
+                          className="flex flex-col gap-1 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
+                        >
+                          <span className="text-[11px] uppercase font-bold tracking-wide text-gray-400">
+                            {coluna.label}
+                          </span>
+                          <div className="text-sm text-gray-700">
+                            {typeof coluna.render === "function"
+                              ? coluna.render(item)
+                              : item[coluna.key]}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tipo === "lista" && dados.length > 0 && (
+            <div className="mt-4 text-xs text-gray-400">
+              Total de registros exibidos: <b>{dados.length}</b>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Dashboard({ usuarioLogado }) {
   const [modalAberto, setModalAberto] = useState(null);
+  const [detalheCardAberto, setDetalheCardAberto] = useState(null);
 
   const [epis, setEpis] = useState([]);
+  const [tamanhos, setTamanhos] = useState([]);
+  const [funcionarios, setFuncionarios] = useState([]);
   const [entradas, setEntradas] = useState([]);
   const [entregas, setEntregas] = useState([]);
+  const [itensEntregues, setItensEntregues] = useState([]);
   const [devolucoes, setDevolucoes] = useState([]);
   const [carregandoResumo, setCarregandoResumo] = useState(true);
 
   const fecharModal = () => setModalAberto(null);
+  const fecharDetalheCard = () => setDetalheCardAberto(null);
 
-  const nomeExibicao =
-    usuarioLogado?.nome || "usuário";
+  const nomeExibicao = usuarioLogado?.nome || "usuário";
 
   const carregarResumo = async () => {
     setCarregandoResumo(true);
 
     try {
-      const [listaEpis, listaEntradas, listaEntregas, listaDevolucoes] =
-        await Promise.all([
-          buscarPrimeiraLista(["/epis", "/epi", "/produtos"], mockEpis),
-          buscarPrimeiraLista(
-            ["/entrada-epi", "/entrada_epi", "/entradas"],
-            mockEntradas
-          ),
-          buscarPrimeiraLista(
-            ["/entrega-epi", "/entrega_epi", "/entregas"],
-            mockEntregas
-          ),
-          buscarPrimeiraLista(
-            ["/devolucoes", "/devolucao"],
-            mockDevolucoes
-          ),
-        ]);
+      const [
+        listaEpis,
+        listaTamanhos,
+        listaFuncionarios,
+        listaEntradas,
+        listaEntregas,
+        listaItensEntregues,
+        listaDevolucoes,
+      ] = await Promise.all([
+        buscarPrimeiraLista(["/epis", "/epi", "/produtos"], mockEpis),
+        buscarPrimeiraLista(["/tamanhos", "/tamanho"], mockTamanhos),
+        buscarPrimeiraLista(["/funcionarios"], mockFuncionarios),
+        buscarPrimeiraLista(
+          ["/entrada-epi", "/entrada_epi", "/entradas"],
+          mockEntradas
+        ),
+        buscarPrimeiraLista(
+          ["/entrega-epi", "/entrega_epi", "/entregas"],
+          mockEntregas
+        ),
+        buscarPrimeiraLista(
+          ["/epis-entregues", "/epis_entregues"],
+          mockItensEntregues
+        ),
+        buscarPrimeiraLista(["/devolucoes", "/devolucao"], mockDevolucoes),
+      ]);
 
       setEpis(listaEpis.map(normalizarEpi));
+      setTamanhos(listaTamanhos.map(normalizarTamanho));
+      setFuncionarios(listaFuncionarios.map(normalizarFuncionario));
       setEntradas(listaEntradas.map(normalizarEntrada));
       setEntregas(listaEntregas.map(normalizarEntrega));
+      setItensEntregues(listaItensEntregues.map(normalizarItemEntregue));
       setDevolucoes(listaDevolucoes.map(normalizarDevolucao));
     } finally {
       setCarregandoResumo(false);
@@ -221,8 +513,162 @@ function Dashboard({ usuarioLogado }) {
     carregarResumo();
   }, []);
 
+  const estoqueDetalhado = useMemo(() => {
+    const mapa = {};
+
+    entradas.forEach((entrada) => {
+      const epi = epis.find((item) => Number(item.id) === Number(entrada.idEpi));
+      const tamanho = tamanhos.find(
+        (item) => Number(item.id) === Number(entrada.idTamanho)
+      );
+
+      const nomeItem =
+        entrada.epiNome || epi?.nome || `EPI #${entrada.idEpi || "--"}`;
+      const tamanhoLabel =
+        entrada.tamanhoTexto || tamanho?.tamanho || "Sem tamanho";
+
+      const chave = `${entrada.idEpi}-${entrada.idTamanho}`;
+
+      if (!mapa[chave]) {
+        mapa[chave] = {
+          id: chave,
+          idEpi: Number(entrada.idEpi),
+          idTamanho: Number(entrada.idTamanho),
+          item: nomeItem,
+          tamanho: tamanhoLabel,
+          quantidade: 0,
+        };
+      }
+
+      mapa[chave].quantidade += Number(entrada.quantidadeAtual || 0);
+    });
+
+    return Object.values(mapa)
+      .filter((item) => Number(item.quantidade) > 0)
+      .sort((a, b) => {
+        if (a.item.localeCompare(b.item) !== 0) {
+          return a.item.localeCompare(b.item);
+        }
+        return String(a.tamanho).localeCompare(String(b.tamanho));
+      });
+  }, [entradas, epis, tamanhos]);
+
+  const entregasHojeDetalhadas = useMemo(() => {
+    const hoje = obterHojeISO();
+    const linhas = [];
+
+    const entregasDoDia = entregas.filter(
+      (entrega) => String(entrega.data_entrega || "").substring(0, 10) === hoje
+    );
+
+    entregasDoDia.forEach((entrega) => {
+      const funcionario = funcionarios.find(
+        (item) => Number(item.id) === Number(entrega.idFuncionario)
+      );
+
+      const itensDaEntrega = itensEntregues.filter(
+        (item) => Number(item.idEntrega) === Number(entrega.id)
+      );
+
+      if (itensDaEntrega.length === 0) {
+        linhas.push({
+          id: `sem-item-${entrega.id}`,
+          data: formatarData(entrega.data_entrega),
+          funcionario: funcionario?.nome || "Funcionário não identificado",
+          matricula: funcionario?.matricula || "--",
+          item: "Sem item vinculado",
+          tamanho: "-",
+          quantidade: 0,
+        });
+      } else {
+        itensDaEntrega.forEach((itemEntregue, index) => {
+          const epi = epis.find(
+            (epiItem) => Number(epiItem.id) === Number(itemEntregue.idEpi)
+          );
+          const tamanho = tamanhos.find(
+            (tamItem) => Number(tamItem.id) === Number(itemEntregue.idTamanho)
+          );
+
+          linhas.push({
+            id: `${entrega.id}-${index}-${itemEntregue.id}`,
+            data: formatarData(entrega.data_entrega),
+            funcionario: funcionario?.nome || "Funcionário não identificado",
+            matricula: funcionario?.matricula || "--",
+            item:
+              itemEntregue.epiNome ||
+              epi?.nome ||
+              `EPI #${itemEntregue.idEpi || "--"}`,
+            tamanho:
+              itemEntregue.tamanhoTexto || tamanho?.tamanho || "Sem tamanho",
+            quantidade: Number(itemEntregue.quantidade || 0),
+          });
+        });
+      }
+    });
+
+    return linhas.sort((a, b) => a.funcionario.localeCompare(b.funcionario));
+  }, [entregas, itensEntregues, funcionarios, epis, tamanhos]);
+
+  const alertasDetalhados = useMemo(() => {
+    return estoqueDetalhado
+      .map((linha) => {
+        const epi = epis.find((item) => Number(item.id) === Number(linha.idEpi));
+        const alertaMinimo = Number(epi?.alerta_minimo || 0);
+
+        return {
+          id: linha.id,
+          item: linha.item,
+          tamanho: linha.tamanho,
+          quantidade: Number(linha.quantidade || 0),
+          alertaMinimo,
+        };
+      })
+      .filter(
+        (item) =>
+          Number(item.alertaMinimo) > 0 &&
+          Number(item.quantidade) <= Number(item.alertaMinimo)
+      )
+      .sort((a, b) => a.quantidade - b.quantidade);
+  }, [estoqueDetalhado, epis]);
+
+  const valorEstoqueDetalhado = useMemo(() => {
+    const mapa = {};
+
+    entradas.forEach((entrada) => {
+      const epi = epis.find((item) => Number(item.id) === Number(entrada.idEpi));
+      const tamanho = tamanhos.find(
+        (item) => Number(item.id) === Number(entrada.idTamanho)
+      );
+
+      const nomeItem =
+        entrada.epiNome || epi?.nome || `EPI #${entrada.idEpi || "--"}`;
+      const tamanhoLabel =
+        entrada.tamanhoTexto || tamanho?.tamanho || "Sem tamanho";
+
+      const chave = `${entrada.idEpi}-${entrada.idTamanho}`;
+
+      if (!mapa[chave]) {
+        mapa[chave] = {
+          id: chave,
+          item: nomeItem,
+          tamanho: tamanhoLabel,
+          quantidade: 0,
+          valorTotal: 0,
+        };
+      }
+
+      mapa[chave].quantidade += Number(entrada.quantidadeAtual || 0);
+      mapa[chave].valorTotal +=
+        Number(entrada.quantidadeAtual || 0) * Number(entrada.valor_unitario || 0);
+    });
+
+    return Object.values(mapa)
+      .filter((item) => Number(item.quantidade) > 0)
+      .sort((a, b) => b.valorTotal - a.valorTotal);
+  }, [entradas, epis, tamanhos]);
+
   const resumo = useMemo(() => {
-    const hoje = new Date().toISOString().split("T")[0];
+    const hoje = obterHojeISO();
 
     const totalItens = entradas.reduce(
       (acc, entrada) => acc + Number(entrada.quantidadeAtual || 0),
@@ -239,21 +685,12 @@ function Dashboard({ usuarioLogado }) {
 
     const valorTotal = entradas.reduce(
       (acc, entrada) =>
-        acc + Number(entrada.quantidadeAtual || 0) * Number(entrada.valor_unitario || 0),
+        acc +
+        Number(entrada.quantidadeAtual || 0) * Number(entrada.valor_unitario || 0),
       0
     );
 
-    const estoquePorEpi = entradas.reduce((acc, entrada) => {
-      const epiId = Number(entrada.idEpi);
-      acc[epiId] = (acc[epiId] || 0) + Number(entrada.quantidadeAtual || 0);
-      return acc;
-    }, {});
-
-    const alertas = epis.filter((epi) => {
-      const estoqueAtual = estoquePorEpi[Number(epi.id)] || 0;
-      const alertaMinimo = Number(epi.alerta_minimo || 0);
-      return alertaMinimo > 0 && estoqueAtual <= alertaMinimo;
-    }).length;
+    const alertas = alertasDetalhados.length;
 
     return {
       totalItens,
@@ -262,15 +699,223 @@ function Dashboard({ usuarioLogado }) {
       alertas,
       valorTotal,
     };
-  }, [epis, entradas, entregas, devolucoes]);
+  }, [entradas, entregas, devolucoes, alertasDetalhados]);
 
-  const formatarMoeda = (valor) => {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      maximumFractionDigits: 0,
-    });
-  };
+  const detalheCardAtual = useMemo(() => {
+    if (detalheCardAberto === "estoque") {
+      return {
+        titulo: "Itens em estoque",
+        subtitulo: "Visualização do estoque atual por item e tamanho.",
+        icon: "📦",
+        dados: estoqueDetalhado,
+        colunas: [
+          {
+            key: "item",
+            label: "Item",
+            render: (item) => (
+              <div className="font-semibold text-gray-800">{item.item}</div>
+            ),
+          },
+          {
+            key: "tamanho",
+            label: "Tamanho",
+            render: (item) => (
+              <span className="inline-flex px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                {item.tamanho}
+              </span>
+            ),
+          },
+          {
+            key: "quantidade",
+            label: "Total em Estoque",
+            render: (item) => (
+              <span className="font-bold text-gray-900">{item.quantidade}</span>
+            ),
+          },
+        ],
+      };
+    }
+
+    if (detalheCardAberto === "entregas") {
+      return {
+        titulo: "Entregas de hoje",
+        subtitulo: "Lista do que foi entregue hoje e para quem foi entregue.",
+        icon: "🚀",
+        dados: entregasHojeDetalhadas,
+        colunas: [
+          {
+            key: "data",
+            label: "Data",
+            render: (item) => <span className="font-medium">{item.data}</span>,
+          },
+          {
+            key: "funcionario",
+            label: "Para quem foi entregue",
+            render: (item) => (
+              <div>
+                <div className="font-semibold text-gray-800">{item.funcionario}</div>
+                <div className="text-xs text-gray-500">Matrícula: {item.matricula}</div>
+              </div>
+            ),
+          },
+          {
+            key: "item",
+            label: "Item entregue",
+            render: (item) => (
+              <div>
+                <div className="font-medium">{item.item}</div>
+                <div className="text-xs text-gray-500">Tamanho: {item.tamanho}</div>
+              </div>
+            ),
+          },
+          {
+            key: "quantidade",
+            label: "Quantidade",
+            render: (item) => <span className="font-bold">{item.quantidade}</span>,
+          },
+        ],
+      };
+    }
+
+    if (detalheCardAberto === "alertas") {
+      return {
+        titulo: "Itens com alerta de estoque",
+        subtitulo: "Itens que estão acabando com base no alerta mínimo configurado.",
+        icon: "⚠️",
+        dados: alertasDetalhados,
+        colunas: [
+          {
+            key: "item",
+            label: "Item",
+            render: (item) => (
+              <div className="font-semibold text-gray-800">{item.item}</div>
+            ),
+          },
+          {
+            key: "tamanho",
+            label: "Tamanho",
+            render: (item) => (
+              <span className="inline-flex px-2 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-bold border border-orange-100">
+                {item.tamanho}
+              </span>
+            ),
+          },
+          {
+            key: "quantidade",
+            label: "Estoque Atual",
+            render: (item) => (
+              <span className="font-bold text-rose-600">{item.quantidade}</span>
+            ),
+          },
+          {
+            key: "alertaMinimo",
+            label: "Alerta Mínimo",
+            render: (item) => (
+              <span className="font-semibold text-gray-800">{item.alertaMinimo}</span>
+            ),
+          },
+        ],
+      };
+    }
+
+    if (detalheCardAberto === "valor") {
+      return {
+        titulo: "Valor em estoque",
+        subtitulo: "Valor total do estoque atual por item e tamanho.",
+        icon: "💲",
+        dados: valorEstoqueDetalhado,
+        colunas: [
+          {
+            key: "item",
+            label: "Item",
+            render: (item) => (
+              <div className="font-semibold text-gray-800">{item.item}</div>
+            ),
+          },
+          {
+            key: "tamanho",
+            label: "Tamanho",
+            render: (item) => (
+              <span className="inline-flex px-2 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                {item.tamanho}
+              </span>
+            ),
+          },
+          {
+            key: "quantidade",
+            label: "Quantidade",
+            render: (item) => <span className="font-bold">{item.quantidade}</span>,
+          },
+          {
+            key: "valorTotal",
+            label: "Valor",
+            render: (item) => (
+              <span className="font-bold text-emerald-700">
+                {formatarMoeda(item.valorTotal)}
+              </span>
+            ),
+          },
+        ],
+      };
+    }
+
+    return {
+      titulo: "",
+      subtitulo: "",
+      icon: "",
+      dados: [],
+      colunas: [],
+    };
+  }, [
+    detalheCardAberto,
+    estoqueDetalhado,
+    entregasHojeDetalhadas,
+    alertasDetalhados,
+    valorEstoqueDetalhado,
+  ]);
+
+  const cardsPrincipais = [
+    {
+      id: "estoque",
+      titulo: "Total em Estoque",
+      valor: carregandoResumo ? "--" : resumo.totalItens,
+      descricao: "Clique para ver item por tamanho",
+      icone: "📦",
+      iconeBox: "bg-blue-50 text-blue-600",
+      ring: "hover:border-blue-200 hover:bg-blue-50/40",
+      badge: "Estoque atual detalhado",
+    },
+    {
+      id: "entregas",
+      titulo: "Entregas Hoje",
+      valor: carregandoResumo ? "--" : resumo.entregasHoje,
+      descricao: "Clique para ver o que foi entregue hoje",
+      icone: "🚀",
+      iconeBox: "bg-purple-50 text-purple-600",
+      ring: "hover:border-purple-200 hover:bg-purple-50/40",
+      badge: "Movimento do dia",
+    },
+    {
+      id: "alertas",
+      titulo: "Alertas",
+      valor: carregandoResumo ? "--" : resumo.alertas,
+      descricao: "Clique para ver os itens acabando",
+      icone: "⚠️",
+      iconeBox: "bg-orange-50 text-orange-600",
+      ring: "hover:border-orange-200 hover:bg-orange-50/40",
+      badge: "Estoque baixo",
+    },
+    {
+      id: "valor",
+      titulo: "Valor em Estoque",
+      valor: carregandoResumo ? "--" : formatarMoeda(resumo.valorTotal),
+      descricao: "Clique para ver item, tamanho, quantidade e valor",
+      icone: "💲",
+      iconeBox: "bg-green-50 text-green-600",
+      ring: "hover:border-green-200 hover:bg-green-50/40",
+      badge: "Financeiro do estoque",
+    },
+  ];
 
   return (
     <div className="animate-fade-in pb-20 md:pb-0">
@@ -295,74 +940,58 @@ function Dashboard({ usuarioLogado }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-10">
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">
-              Total em Estoque
-            </h3>
-            <span className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-lg text-xs md:text-base">
-              📦
-            </span>
-          </div>
-          <p className="text-2xl md:text-3xl font-bold text-gray-800">
-            {carregandoResumo ? "--" : resumo.totalItens}
-          </p>
-          <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">
-            Soma de quantidade atual
+      <div className="mb-8 ml-2 md:ml-1 flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4">
+        <div>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">
+            Visão principal do dashboard
+          </h3>
+          <p className="text-sm text-gray-500">
+            Clique em qualquer card para abrir os detalhes correspondentes.
           </p>
         </div>
+      </div>
 
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">
-              Entregas Hoje
-            </h3>
-            <span className="p-1.5 md:p-2 bg-purple-50 text-purple-600 rounded-lg text-xs md:text-base">
-              🚀
-            </span>
-          </div>
-          <p className="text-2xl md:text-3xl font-bold text-gray-800">
-            {carregandoResumo ? "--" : resumo.entregasHoje}
-          </p>
-          <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">
-            Registros de hoje
-          </p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 mb-8 md:mb-10">
+        {cardsPrincipais.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={() => setDetalheCardAberto(card.id)}
+            className={`group text-left bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer ${card.ring}`}
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                <span className="inline-flex text-[10px] md:text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-2">
+                  {card.badge}
+                </span>
 
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">
-              Alertas
-            </h3>
-            <span className="p-1.5 md:p-2 bg-orange-50 text-orange-600 rounded-lg text-xs md:text-base">
-              ⚠️
-            </span>
-          </div>
-          <p className="text-2xl md:text-3xl font-bold text-gray-800">
-            {carregandoResumo ? "--" : resumo.alertas}
-          </p>
-          <p className="text-[10px] md:text-xs text-orange-600 mt-1 md:mt-2 font-bold">
-            Estoque baixo
-          </p>
-        </div>
+                <h3 className="text-gray-600 text-sm md:text-sm font-bold uppercase leading-tight">
+                  {card.titulo}
+                </h3>
+              </div>
 
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-gray-500 text-[10px] md:text-sm font-bold uppercase truncate">
-              Valor em Estoque
-            </h3>
-            <span className="p-1.5 md:p-2 bg-green-50 text-green-600 rounded-lg text-xs md:text-base">
-              💲
-            </span>
-          </div>
-          <p className="text-xl md:text-3xl font-bold text-gray-800">
-            {carregandoResumo ? "--" : formatarMoeda(resumo.valorTotal)}
-          </p>
-          <p className="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">
-            Baseado em quantidade atual
-          </p>
-        </div>
+              <span
+                className={`shrink-0 p-2.5 rounded-xl text-base md:text-lg ${card.iconeBox}`}
+              >
+                {card.icone}
+              </span>
+            </div>
+
+            <div className="mb-3">
+              <p className="text-2xl md:text-3xl font-bold text-gray-800 leading-tight break-words">
+                {card.valor}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500 leading-relaxed">{card.descricao}</p>
+
+              <span className="text-blue-600 font-bold text-xs md:text-sm opacity-80 group-hover:translate-x-1 transition">
+                Abrir →
+              </span>
+            </div>
+          </button>
+        ))}
       </div>
 
       <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 mb-8">
@@ -458,9 +1087,25 @@ function Dashboard({ usuarioLogado }) {
         </button>
       </div>
 
-      {modalAberto === "entrada" && <ModalEntrada onClose={fecharModal} />}
-      {modalAberto === "entrega" && <ModalEntrega onClose={fecharModal} />}
-      {modalAberto === "baixa" && <ModalBaixa onClose={fecharModal} />}
+      <ModalDetalhesDashboard
+        aberto={!!detalheCardAberto}
+        titulo={detalheCardAtual.titulo}
+        subtitulo={detalheCardAtual.subtitulo}
+        icon={detalheCardAtual.icon}
+        dados={detalheCardAtual.dados}
+        colunas={detalheCardAtual.colunas}
+        onClose={fecharDetalheCard}
+      />
+
+      {modalAberto === "entrada" && (
+        <ModalEntrada onClose={fecharModal} onSalvar={carregarResumo} />
+      )}
+      {modalAberto === "entrega" && (
+        <ModalEntrega onClose={fecharModal} onSalvar={carregarResumo} />
+      )}
+      {modalAberto === "baixa" && (
+        <ModalBaixa onClose={fecharModal} onSalvar={carregarResumo} />
+      )}
       {modalAberto === "busca" && <ModalBusca onClose={fecharModal} />}
     </div>
   );
