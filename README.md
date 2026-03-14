@@ -78,50 +78,50 @@ src/
  └── components/
      ├── Header.jsx
      └── Toast.jsx
+```
 
+# Como executar o projeto
 
-Como executar o projeto
+1. Clone o repositório  
+   `git clone URL_DO_SEU_REPOSITORIO`
 
-1. Clone o repositório
-git clone URL_DO_SEU_REPOSITORIO
+2. Acesse a pasta do projeto  
+   `cd nome-do-projeto`
 
-2. Acesse a pasta do projeto
-cd nome-do-projeto
+3. Instale as dependências  
+   `npm install`
 
-3. Instale as dependências
-npm install
-
-4. Execute o projeto
-npm start
+4. Execute o projeto  
+   `npm start`
 
 
 O sistema será iniciado normalmente em ambiente local.
 
-Configuração da API
+# Configuração da API
 
 O front-end utiliza a variável:
 
-REACT_APP_API_URL
+`REACT_APP_API_URL`
 
 
 Caso ela não esteja definida, o projeto usa por padrão:
 
-http://empresa.lvh.me:8080/api
+`http://empresa.lvh.me:8080/api`
 
 
 Exemplo de arquivo .env:
 
-REACT_APP_API_URL=http://empresa.lvh.me:8080/api
+`REACT_APP_API_URL=http://empresa.lvh.me:8080/api`
 
-Autenticação
+# Autenticação
 
-O login do sistema é feito por token JWT.
+- O login do sistema é feito por token JWT.
 
-Após autenticação:
+- Após autenticação:
 
-o token é salvo no localStorage
+- O token é salvo no localStorage
 
-os dados do usuário também são salvos no localStorage
+- Os dados do usuário também são salvos no localStorage
 
 o token é enviado automaticamente no header Authorization nas requisições protegidas
 
