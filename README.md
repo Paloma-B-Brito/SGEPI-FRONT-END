@@ -184,9 +184,9 @@ api.get
 
 api.post
 
-`api.put`
+api.put
 
-`api.patch
+api.patch
 
 api.delete
 ```
