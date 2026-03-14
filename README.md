@@ -200,9 +200,3 @@ Esses métodos já:
 
 - Lançam erros padronizados
 
-
-normalização de dados recebidos do back-end
-
-uso de fallback com mocks para facilitar testes visuais
-
-responsividade para diferentes tamanhos de tela
